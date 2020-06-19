@@ -4,18 +4,17 @@ import com.sapher.youtubedl.YoutubeDL
 import com.sapher.youtubedl.mapper.VideoInfo
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
-import org.bytedeco.javacv.FFmpegFrameGrabber
-import org.bytedeco.javacv.FrameGrabber
+import org.bytedeco.javacv.*
 import java.nio.ShortBuffer
 import kotlin.math.abs
+import org.bytedeco.ffmpeg.global.avformat.*
+
 
 /**
  * @author SIY1121
  */
 
 class FFmpegTrackDataProvider(sourceUrl: String, val gapless: Boolean = true, val normalizeVolume: Boolean = true) : TrackDataProvider(sourceUrl) {
-
-    lateinit var grabber: FFmpegFrameGrabber
     lateinit var rawBuffer: ShortBuffer
 
     private var putPosition: Int = 0
@@ -71,12 +70,19 @@ class FFmpegTrackDataProvider(sourceUrl: String, val gapless: Boolean = true, va
         detectedDuration = rawTrackInfo.duration.toFloat()
         val targetFormat = rawTrackInfo.formats.find { it.acodec == "opus" && it.abr > 150 }
                 ?: rawTrackInfo.formats.last()
-        grabber = FFmpegFrameGrabber(targetFormat.url)
+
+        val grabber = if (targetFormat.format.contains("DASH")) {
+            val pb = ProcessBuilder("youtube-dl", sourceUrl, "-f ${targetFormat.formatId}", "-q", "-o-")
+            val p = pb.start()
+            FFmpegFrameGrabber(p.inputStream)
+        } else FFmpegFrameGrabber(targetFormat.url)
+
         grabber.sampleMode = FrameGrabber.SampleMode.SHORT
         grabber.sampleRate = 48000
         grabber.audioChannels = 2
         rawBuffer = ShortBuffer.allocate((rawTrackInfo.duration + 1) * sampleRate * channelCount)
         grabber.start()
+
         status = Status.Ready
 
         while (true) {
@@ -91,6 +97,7 @@ class FFmpegTrackDataProvider(sourceUrl: String, val gapless: Boolean = true, va
         }
         loadProgress = 1f
         detectedDuration = putPosition / sampleRate / channelCount.toFloat()
+        grabber.release()
 
         if (!gapless) return@launch
         synchronized(rawBuffer) {

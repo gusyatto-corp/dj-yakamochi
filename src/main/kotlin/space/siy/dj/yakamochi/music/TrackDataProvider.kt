@@ -20,7 +20,7 @@ abstract class TrackDataProvider(val sourceUrl: String) {
     abstract fun read(range: IntRange): ShortArray
     abstract fun load(): Job
 
-    data class Info(val url: String, val title: String, val duration: Float)
+    data class Info(val url: String, val title: String, var duration: Float)
     enum class Status {
         UnInitialized, Ready ,End
     }

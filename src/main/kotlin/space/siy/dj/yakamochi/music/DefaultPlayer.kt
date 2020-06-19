@@ -1,7 +1,6 @@
 package space.siy.dj.yakamochi.music
 
 import java.nio.ByteBuffer
-import javax.sound.midi.Track
 
 /**
  * @author SIY1121
@@ -17,7 +16,7 @@ class DefaultPlayer : Player {
     val trackList = ArrayList<String>()
 
     var nowPlayingIndex = -1
-
+    var skiping = -1f
 
     override fun addTrack(url: String) {
         tracksData[url] = FFmpegTrackDataProvider(url, true).apply {
@@ -29,18 +28,22 @@ class DefaultPlayer : Player {
         }
     }
 
+    override fun skip() {
+        val track = getTrackDataNext(0) ?: return
+        skiping = crossFadeDuration
+    }
+
     override fun provide20MsAudio(): ByteBuffer {
-        val requiredInBytes = (sampleCountIn20Ms * Short.SIZE_BYTES).toInt()
+        val requiredInBytes = (sampleCountIn20Ms * Short.SIZE_BYTES)
 
         val buf = ByteBuffer.allocate(requiredInBytes)
 
         val nowPlayingTrackData = getTrackDataNext(0) ?: return buf
 
         var nowPlayingAudioData = nowPlayingTrackData.read20MsAudio()
-        val tmp = nowPlayingTrackData.trackInfo.duration - nowPlayingTrackData.providedPosition
-        if (tmp <= crossFadeDuration) {
-            println(tmp)
-            val t = tmp / crossFadeDuration
+        val remainingSec = if (skiping > 0) skiping else nowPlayingTrackData.trackInfo.duration - nowPlayingTrackData.providedPosition
+        if (remainingSec <= crossFadeDuration) {
+            val t = remainingSec / crossFadeDuration
             val nextTrackData = getTrackDataNext(1)
             // 次のトラックの準備ができていたらフェードインする
             nowPlayingAudioData = if (nextTrackData != null && nextTrackData.canRead20MsAudio()) {
@@ -53,21 +56,24 @@ class DefaultPlayer : Player {
                 nowPlayingAudioData.mapIndexed { index, s -> s.fade(t - index / 48000f / 2) }.toShortArray()
         }
 
-        if (tmp <= 0.03f) {
-            nowPlayingIndex++
-        }
+        if (skiping > 0) skiping -= 0.02f
 
+        if (remainingSec <= 0.03f) {
+            tracksData.remove(nowPlaying)
+            nowPlayingIndex++
+            skiping = -1f
+        }
 
         buf.asShortBuffer().put(nowPlayingAudioData)
         return buf
     }
 
-    fun TrackDataProvider.read20MsAudio() = read(sampleCountIn20Ms)
+    private fun TrackDataProvider.read20MsAudio() = read(sampleCountIn20Ms)
 
-    fun TrackDataProvider.canRead20MsAudio() = canRead(sampleCountIn20Ms)
+    private fun TrackDataProvider.canRead20MsAudio() = canRead(sampleCountIn20Ms)
 
-    fun getTrackDataNext(offset: Int): TrackDataProvider? {
-        if (trackList.size <= nowPlayingIndex + offset) return null
+    private fun getTrackDataNext(offset: Int): TrackDataProvider? {
+        if (nowPlayingIndex + offset < 0 || trackList.size <= nowPlayingIndex + offset) return null
         return tracksData[trackList[nowPlayingIndex + offset]]
     }
 

@@ -8,4 +8,5 @@ import net.dv8tion.jda.api.audio.AudioSendHandler
 interface Player : AudioSendHandler {
     val nowPlaying: String
     fun addTrack(url: String)
+    fun skip()
 }
