@@ -41,6 +41,7 @@ dependencies {
     implementation "org.jetbrains.exposed:exposed-dao:0.24.1"
     implementation "org.jetbrains.exposed:exposed-jdbc:0.24.1"
     implementation "org.postgresql:postgresql:42.2.2"
+    compile 'org.jetbrains.exposed:exposed-jodatime:0.24.1'
 
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.11.0'
     implementation "com.fasterxml.jackson.module:jackson-module-kotlin:2.11.0"

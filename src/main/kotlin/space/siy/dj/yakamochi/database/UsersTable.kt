@@ -1,0 +1,14 @@
+package space.siy.dj.yakamochi.database
+
+import org.jetbrains.exposed.dao.id.EntityID
+import org.jetbrains.exposed.dao.id.IdTable
+import org.jetbrains.exposed.sql.Column
+
+/**
+ * @author SIY1121
+ */
+object UsersTable : IdTable<String>("users") {
+    val name = text("name")
+    val icon = text("icon")
+    override val id: Column<EntityID<String>> = text("id").entityId()
+}

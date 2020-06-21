@@ -1,15 +1,24 @@
 package space.siy.dj.yakamochi.music2.track
 
+import org.koin.core.KoinComponent
+import org.koin.core.inject
+import space.siy.dj.yakamochi.database.TrackHistoryRepository
+
 /**
  * @author SIY1121
  */
 @ExperimentalStdlibApi
-class TrackQueue {
+class TrackQueue : KoinComponent {
     val queue = ArrayDeque<Track>()
     val listeners: MutableList<() -> Unit> = mutableListOf()
+    val trackHistoryRepository by inject<TrackHistoryRepository>()
 
-    fun addTrack(url: String, author: String) {
-        queue.add(Track.newYoutubeDLTrack(url, author))
+    init {
+        trackHistoryRepository.listAll(false).forEach { queue.add(Track.newYoutubeDLTrack(it.url, it.author.id, it.guild.id)) }
+    }
+
+    fun addTrack(url: String, author: String, guild: String) {
+        queue.add(Track.newYoutubeDLTrack(url, author, guild))
         notifyQueueChanged()
     }
 
