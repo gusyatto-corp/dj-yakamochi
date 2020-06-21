@@ -4,6 +4,7 @@ import space.siy.dj.yakamochi.music2.audio.GaplessAudioProvider
 import space.siy.dj.yakamochi.music2.audio.SimpleAudioProvider
 import space.siy.dj.yakamochi.music2.sampleCountToSec
 import space.siy.dj.yakamochi.music2.secToSampleCount
+import space.siy.dj.yakamochi.music2.toArray
 import space.siy.dj.yakamochi.music2.track.TrackQueue
 import java.nio.ByteBuffer
 import java.nio.ShortBuffer
@@ -82,10 +83,4 @@ class CrossFadePlayer(val trackQueue: TrackQueue) : Player {
     override fun canProvide() = track(0)?.audioProvider?.canRead20Ms() ?: false
 
     private fun Short.fade(v: Float) = (this * (v)).toShort()
-
-    private fun ShortBuffer.toArray(): ShortArray {
-        val arr = ShortArray(limit())
-        get(arr)
-        return arr
-    }
 }

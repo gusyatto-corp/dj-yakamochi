@@ -35,8 +35,9 @@ open class SimpleAudioProvider(remote: RemoteAudioProvider) : AudioProvider(remo
         }
     }
 
-    protected fun startSync() {
+    protected open fun startSync() {
         remote.start()
+        duration = remote.estimateDuration.secToSampleCount()
         duration = remote.estimateDuration.secToSampleCount()
         isLive = remote.estimateDuration == 0f
         if (isLive) queue = ArrayBlockingQueue(10.secToSampleCount())
