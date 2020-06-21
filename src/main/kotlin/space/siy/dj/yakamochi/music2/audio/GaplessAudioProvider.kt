@@ -49,6 +49,7 @@ class GaplessAudioProvider(remote: RemoteAudioProvider) : SimpleAudioProvider(re
         while (true) {
             val data = remote.read() ?: break
             if (isLive) synchronized(queue) {
+                startGapDetected = true
                 val arr = ShortArray(data.limit())
                 data.get(arr)
                 arr.forEach {
@@ -99,12 +100,12 @@ class GaplessAudioProvider(remote: RemoteAudioProvider) : SimpleAudioProvider(re
         } else {
             synchronized(buffer) {
                 buffer.position(position + startGap)
-                val req = size.coerceAtMost(duration + startGap - position)
+                val req = size.coerceAtMost(duration - position)
                 val arr = ShortArray(req)
                 buffer.get(arr)
                 res.put(arr)
                 position = buffer.position() - startGap
-                if (position >= duration + startGap)
+                if (position >= duration)
                     status = Status.End
             }
         }
