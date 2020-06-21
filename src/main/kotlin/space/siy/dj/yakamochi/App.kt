@@ -18,7 +18,7 @@ import space.siy.dj.yakamochi.music2.track.database.TrackHistoryRepository
 @ExperimentalStdlibApi
 class Main : ListenerAdapter() {
     val trackQueue = TrackQueue()
-    val player = GaplessPlayer(trackQueue)
+    val player = CrossFadePlayer(trackQueue)
     override fun onMessageReceived(event: MessageReceivedEvent) {
         GlobalScope.launch {
             if (!event.message.contentRaw.contains(event.jda.selfUser.id)) return@launch
