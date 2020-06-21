@@ -3,6 +3,7 @@ package space.siy.dj.yakamochi.music
 import com.sapher.youtubedl.YoutubeDL
 import com.sapher.youtubedl.mapper.VideoInfo
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import org.bytedeco.javacv.*
 import java.nio.ShortBuffer
@@ -38,12 +39,14 @@ class FFmpegTrackDataProvider(sourceUrl: String, val gapless: Boolean = true, va
     var detectedDuration = 0f
 
     override val trackInfo: Info
-        get() = Info(sourceUrl, rawTrackInfo.title, detectedDuration - endGap)
+        get() = Info(sourceUrl, rawTrackInfo.title, detectedDuration - endGap, rawTrackInfo.thumbnail)
 
     override var status: Status = Status.UnInitialized
         private set
     override val providedPosition: Float
         get() = readPosition.toFloat() / sampleRate / channelCount
+
+    override var historyID: Int = -1
 
     override fun canRead(size: Int) = readPosition + size < putPosition
 
@@ -65,9 +68,12 @@ class FFmpegTrackDataProvider(sourceUrl: String, val gapless: Boolean = true, va
         TODO("Not yet implemented")
     }
 
-    override fun load() = GlobalScope.launch {
+    override fun loadMetadata() = GlobalScope.launch {
         rawTrackInfo = YoutubeDL.getVideoInfo(sourceUrl)
         detectedDuration = rawTrackInfo.duration.toFloat()
+    }
+
+    override fun loadMedia() = GlobalScope.launch {
         val targetFormat = rawTrackInfo.formats.find { it.acodec == "opus" && it.abr > 150 }
                 ?: rawTrackInfo.formats.last()
 

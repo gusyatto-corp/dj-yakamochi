@@ -42,6 +42,8 @@ dependencies {
     implementation "org.jetbrains.exposed:exposed-jdbc:0.24.1"
     implementation "org.postgresql:postgresql:42.2.2"
 
+    compile "org.koin:koin-core:2.1.6"
+
     // Use the Kotlin JUnit integration.
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
 }

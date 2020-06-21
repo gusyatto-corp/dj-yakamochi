@@ -1,5 +1,7 @@
 package space.siy.dj.yakamochi.music
 
+import org.jetbrains.exposed.sql.transactions.transaction
+import space.siy.dj.yakamochi.music.database.TrackHistory
 import java.nio.ByteBuffer
 
 /**
@@ -18,14 +20,31 @@ class DefaultPlayer : Player {
     var nowPlayingIndex = -1
     var skiping = -1f
 
-    override fun addTrack(url: String) {
-        tracksData[url] = FFmpegTrackDataProvider(url, true).apply {
-            load()
+    override suspend fun addTrack(_url: String) {
+        val newTrackData = FFmpegTrackDataProvider(_url, true).apply {
+            loadMetadata()
         }
-        trackList.add(url)
+        tracksData[_url] = newTrackData
+        trackList.add(_url)
         if (nowPlayingIndex == -1) {
             nowPlayingIndex++
         }
+
+        transaction {
+            val history = TrackHistory.new {
+                title = newTrackData.trackInfo.title
+                url = newTrackData.trackInfo.url
+                duration = newTrackData.trackInfo.duration.toInt()
+                thumbnail = newTrackData.trackInfo.thumbnail
+                done = false
+            }
+            newTrackData.historyID = history.id.value
+        }
+    }
+
+    private fun doneTrack(id: Int) = transaction {
+        val h = TrackHistory.findById(id) ?: return@transaction
+        h.done = true
     }
 
     override fun skip() {
@@ -60,6 +79,7 @@ class DefaultPlayer : Player {
 
         if (remainingSec <= 0.03f) {
             tracksData.remove(nowPlaying)
+            doneTrack(nowPlayingTrackData.historyID)
             nowPlayingIndex++
             skiping = -1f
         }

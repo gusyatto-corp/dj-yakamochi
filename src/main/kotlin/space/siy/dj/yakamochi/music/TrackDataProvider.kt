@@ -14,13 +14,15 @@ abstract class TrackDataProvider(val sourceUrl: String) {
     abstract val trackInfo: Info
     abstract val status: Status
     abstract val providedPosition: Float
+    abstract var historyID: Int
     abstract fun canRead(size: Int): Boolean
     abstract fun canRead(range: IntRange): Boolean
     abstract fun read(size: Int): ShortArray
     abstract fun read(range: IntRange): ShortArray
-    abstract fun load(): Job
+    abstract fun loadMetadata(): Job
+    abstract fun loadMedia(): Job
 
-    data class Info(val url: String, val title: String, var duration: Float)
+    data class Info(val url: String, val title: String, val duration: Float, val thumbnail: String)
     enum class Status {
         UnInitialized, Ready ,End
     }
