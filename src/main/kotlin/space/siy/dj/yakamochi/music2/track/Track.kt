@@ -53,6 +53,8 @@ abstract class Track protected constructor(private val trackHistory: TrackHistor
             val info = _info ?: YoutubeDL.getVideoInfo(url)
             return YoutubeDLTrack(new(url, info.title, info.thumbnail, info.duration, author, guild), info)
         }
+
+        fun fromHistory(trackHistory: TrackHistory) = YoutubeDLTrack(trackHistory, YoutubeDL.getVideoInfo(trackHistory.url))
     }
 
     protected abstract fun prepareRemoteAudio(): RemoteAudioProvider

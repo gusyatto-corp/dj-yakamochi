@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE logback>
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%date{yyyy-MM-dd HH:mm:ss} [%thread] [%level] %logger{0} - %msg %n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="debug">
+        <appender-ref ref="STDOUT" />
+    </root>
+
+    <!-- ★level 属性を指定 -->
+    <logger name="space.siy.dj.yakamochi" level="debug" />
+    <logger name="org.bytedeco.javacv" level="warn" />
+    <logger name="org.bytedeco.javacpp" level="warn" />
+    <logger name="net.dv8tion.jda" level="debug" />
+</configuration>

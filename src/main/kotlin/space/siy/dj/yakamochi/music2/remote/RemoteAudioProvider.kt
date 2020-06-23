@@ -8,15 +8,11 @@ import java.nio.ShortBuffer
  * @author SIY1121
  */
 interface RemoteAudioProvider {
-    companion object {
-        fun create(url: String) = YoutubeDLFFmpegRemoteAudioProvider(url)
-        fun create(inputStream: InputStream) = SimpleFFmpegRemoteAudioProvider(inputStream)
-    }
-
+    val title: String
     val source: String
     val format: String
     val estimateDuration: Float
-    fun start()
-    fun read(): ShortBuffer?
+    suspend fun start()
+    suspend fun read(): ShortBuffer?
     fun release()
 }

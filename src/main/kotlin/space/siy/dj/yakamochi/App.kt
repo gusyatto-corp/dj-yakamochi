@@ -1,53 +1,67 @@
 package space.siy.dj.yakamochi
 
-import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.JDABuilder
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
+import org.bytedeco.javacv.FFmpegLogCallback
 import org.jetbrains.exposed.sql.Database
 import org.koin.core.KoinComponent
 import org.koin.core.context.startKoin
 import org.koin.core.inject
 import org.koin.dsl.module
-import space.siy.dj.yakamochi.music2.player.CrossFadePlayer
-import space.siy.dj.yakamochi.music2.track.TrackQueue
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import space.siy.dj.yakamochi.database.*
+import space.siy.dj.yakamochi.music2.player.CrossFadePlayer
+import space.siy.dj.yakamochi.music2.player.GaplessPlayer
+import space.siy.dj.yakamochi.music2.player.Player
+import space.siy.dj.yakamochi.music2.track.TrackQueue
 
 @ExperimentalStdlibApi
 class Main : ListenerAdapter(), KoinComponent {
-    val trackQueue = TrackQueue()
-    val player = CrossFadePlayer(trackQueue)
+
+    val receiverScope = CoroutineScope(Dispatchers.IO)
+
+    val trackQueues = HashMap<String, TrackQueue>()
+    val players = HashMap<String, Player>()
 
     val userRepository: UserRepository by inject()
     val guildRepository: GuildRepository by inject()
 
     override fun onMessageReceived(event: MessageReceivedEvent) {
-        GlobalScope.launch {
+        receiverScope.launch {
             if (guildRepository.find(event.guild.id) == null)
                 guildRepository.new(event.guild.id, event.guild.name, event.guild.iconUrl ?: "")
             if (userRepository.find(event.author.id) == null)
                 userRepository.new(event.author.id, event.author.name, event.author.avatarUrl ?: "")
 
-            if (!event.message.contentRaw.contains(event.jda.selfUser.id)) return@launch
+            if (!event.message.contentDisplay.contains("@DJ家持")) return@launch
+            if (trackQueues[event.guild.id] == null) {
+                event.channel.sendMessage("<@${event.author.id}> 準備するからちょっと待ってちょうだい").queue()
+                trackQueues[event.guild.id] = TrackQueue(event.guild.id)
+                players[event.guild.id] = GaplessPlayer(trackQueues[event.guild.id]!!)
+            }
             when {
                 event.message.contentRaw.contains("おいで") -> {
                     val channel = event.member?.voiceState?.channel ?: return@launch
                     event.guild.audioManager.run {
-                        sendingHandler = player
+                        sendingHandler = players[event.guild.id]
                         openAudioConnection(channel)
                     }
                 }
                 event.message.contentRaw.contains("skip") -> {
-                    player.skip()
+                    players[event.guild.id]?.skip()
                 }
                 event.message.contentRaw.contains("バイバイ") -> {
                     event.guild.audioManager.closeAudioConnection()
                 }
                 else -> {
                     val url = event.message.contentRaw.matchUrl() ?: return@launch
-                    trackQueue.addTrack(url, event.author.id, event.guild.id)
-                    event.channel.sendMessage("<@${event.author.id}> 追加したわよ").queue()
+                    trackQueues[event.guild.id]?.addTrack(url, event.author.id, event.guild.id)
+                    event.message.addReaction("🎵").queue()
                 }
             }
         }
@@ -67,6 +81,8 @@ val repositoryModule = module {
 
 @ExperimentalStdlibApi
 fun main(args: Array<String>) {
+    System.setProperty("org.bytedeco.javacpp.logger", "slf4j")
+    FFmpegLogCallback.set()
     startKoin {
         printLogger()
         modules(repositoryModule)
@@ -76,3 +92,6 @@ fun main(args: Array<String>) {
     val jda = JDABuilder.createDefault(System.getenv("token")).build()
     jda.addEventListener(Main())
 }
+
+
+fun Any.logger(): Logger = LoggerFactory.getLogger(this::class.java)

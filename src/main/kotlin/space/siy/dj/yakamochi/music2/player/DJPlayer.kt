@@ -16,7 +16,8 @@ import kotlin.math.sqrt
  * @author SIY1121
  */
 @ExperimentalStdlibApi
-class CrossFadePlayer(val trackQueue: TrackQueue) : Player {
+class DJPlayer constructor(val trackQueue: TrackQueue) : Player {
+
     val crossFadeDuration = 2f
     var skiping = -1f
     private val onQueueChanged = {

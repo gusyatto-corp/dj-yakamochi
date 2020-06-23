@@ -1,5 +1,9 @@
 package space.siy.dj.yakamochi.music2.audio
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import space.siy.dj.yakamochi.logger
 import space.siy.dj.yakamochi.music2.remote.RemoteAudioProvider
 import java.nio.ShortBuffer
 
@@ -9,13 +13,18 @@ import java.nio.ShortBuffer
  * @author SIY1121
  */
 abstract class AudioProvider(protected val remote: RemoteAudioProvider) {
+    companion object {
+        val scope = CoroutineScope(Dispatchers.IO)
+        fun AudioProvider.logInfo(msg: String) = logger().info("[{}] {}", remote.title, msg )
+    }
     abstract val duration: Int
     abstract val available: Int
-    abstract var position: Int
+    abstract val position: Int
     abstract val status: Status
-    abstract fun start()
+    abstract fun start(): Job
     abstract fun canRead(size: Int): Boolean
     abstract fun read(size: Int): ShortBuffer
+    abstract fun seek(position: Int)
     abstract fun release()
 
     private val fullLoadedListeners: MutableList<() -> Unit> = mutableListOf()
@@ -31,6 +40,6 @@ abstract class AudioProvider(protected val remote: RemoteAudioProvider) {
     protected fun notifyFullLoaded() = fullLoadedListeners.forEach { it() }
 
     enum class Status {
-        Uninitialized, Working, End
+        Uninitialized, Active, End
     }
 }

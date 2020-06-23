@@ -47,6 +47,9 @@ dependencies {
     implementation "com.fasterxml.jackson.module:jackson-module-kotlin:2.11.0"
 
     compile "org.koin:koin-core:2.1.6"
+    implementation "org.koin:koin-core-ext:2.1.6"
+
+    implementation "ch.qos.logback:logback-classic:+"
 
     // Use the Kotlin JUnit integration.
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'

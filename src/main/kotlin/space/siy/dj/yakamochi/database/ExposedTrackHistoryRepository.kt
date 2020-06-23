@@ -1,5 +1,6 @@
 package space.siy.dj.yakamochi.database
 
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.joda.time.DateTime
 
@@ -29,14 +30,15 @@ class ExposedTrackHistoryRepository : TrackHistoryRepository {
         transaction { TrackHistoryDAO.findById(id)?.done = true }
     }
 
-    override fun list(done: Boolean, offset: Int, limit: Int) = transaction {
+    override fun list(guild: String, done: Boolean, offset: Int, limit: Int) = transaction {
         TrackHistoryDAO.find {
-            TrackHistoriesTable.done eq done
+            (TrackHistoriesTable.guild eq guild) and
+                    (TrackHistoriesTable.done eq done)
         }.limit(limit, offset.toLong()).map { it.transform() }
     }
 
-    override fun listAll(done: Boolean): List<TrackHistory> = transaction {
-        TrackHistoryDAO.find { TrackHistoriesTable.done eq done }.map { it.transform() }
+    override fun listAll(guild: String, done: Boolean): List<TrackHistory> = transaction {
+        TrackHistoryDAO.find { (TrackHistoriesTable.guild eq guild) and (TrackHistoriesTable.done eq done) }.map { it.transform() }
     }
 
     private fun TrackHistoryDAO.transform() = TrackHistory(

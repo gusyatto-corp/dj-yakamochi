@@ -7,6 +7,6 @@ interface TrackHistoryRepository {
     fun new(url: String, title: String, thumbnail: String, duration: Int, author: String, guild: String): TrackHistory
     fun done(id: Int)
     fun remove(id: Int)
-    fun list(done: Boolean, offset: Int, limit: Int): List<TrackHistory>
-    fun listAll(done: Boolean): List<TrackHistory>
+    fun list(guild: String, done: Boolean, offset: Int, limit: Int): List<TrackHistory>
+    fun listAll(guild:String, done: Boolean): List<TrackHistory>
 }
