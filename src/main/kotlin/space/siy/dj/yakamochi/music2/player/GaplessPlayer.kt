@@ -5,6 +5,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import space.siy.dj.yakamochi.music2.audio.AudioProvider
+import space.siy.dj.yakamochi.music2.audio.LiveQueueAudioProvider
 import space.siy.dj.yakamochi.music2.audio.QueueGaplessAudioProvider
 import space.siy.dj.yakamochi.music2.secToSampleCount
 import space.siy.dj.yakamochi.music2.track.TrackQueue
@@ -19,7 +20,7 @@ class GaplessPlayer constructor(val trackQueue: TrackQueue) : Player {
     private val onQueueChanged = {
         trackQueue.list().take(3).forEach { track ->
             if (!track.audioInitialized)
-                track.prepareAudio { QueueGaplessAudioProvider(it) }
+                track.prepareAudio { if (track.duration == 0f) LiveQueueAudioProvider(it) else QueueGaplessAudioProvider(it) }
         }
     }
 

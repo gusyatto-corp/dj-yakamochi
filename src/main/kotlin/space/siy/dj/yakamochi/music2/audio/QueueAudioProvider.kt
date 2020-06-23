@@ -34,7 +34,7 @@ open class QueueAudioProvider(remote: RemoteAudioProvider) : AudioProvider(remot
         status = Status.Active
         logInfo("queue size: ${queue.remainingCapacity().sampleCountToSec()}s")
         logInfo("estimate audio duration: ${duration.sampleCountToSec()}s")
-        while (true) {
+        while (status == Status.Active) {
             val data = remote.read() ?: break
             data.toArray().run {
                 forEach { queue.put(it) }
@@ -67,6 +67,7 @@ open class QueueAudioProvider(remote: RemoteAudioProvider) : AudioProvider(remot
     }
 
     override fun release() {
+        status = Status.Uninitialized
         remote.release()
         queue.clear()
     }

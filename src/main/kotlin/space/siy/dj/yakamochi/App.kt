@@ -42,7 +42,7 @@ class Main : ListenerAdapter(), KoinComponent {
             if (trackQueues[event.guild.id] == null) {
                 event.channel.sendMessage("<@${event.author.id}> 準備するからちょっと待ってちょうだい").queue()
                 trackQueues[event.guild.id] = TrackQueue(event.guild.id)
-                players[event.guild.id] = GaplessPlayer(trackQueues[event.guild.id]!!)
+                players[event.guild.id] = CrossFadePlayer(trackQueues[event.guild.id]!!)
             }
             when {
                 event.message.contentRaw.contains("おいで") -> {

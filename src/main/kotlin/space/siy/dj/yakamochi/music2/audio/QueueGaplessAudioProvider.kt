@@ -24,13 +24,13 @@ class QueueGaplessAudioProvider(remote: RemoteAudioProvider) : QueueAudioProvide
         remote.start()
         queue = ArrayBlockingQueue(15.secToSampleCount())
         duration = remote.estimateDuration.secToSampleCount()
-
+        status = Status.Active
         logInfo("queue size: ${queue.remainingCapacity().sampleCountToSec()}s")
         logInfo("estimate audio duration: ${duration.sampleCountToSec()}s")
-
-        while (true) {
+        var startGapDetected = false
+        while (status == Status.Active) {
             val data = remote.read()?.toArray() ?: break
-            if (status == Status.Uninitialized) {
+            if (!startGapDetected) {
                 val i = data.indexOfFirst { it > threthold }
                 if (i < 0) {
                     startGap += data.size
@@ -40,7 +40,7 @@ class QueueGaplessAudioProvider(remote: RemoteAudioProvider) : QueueAudioProvide
                         forEach { queue.put(it) }
                         putPosition += size
                     }
-                    status = Status.Active
+                    startGapDetected = true
                     startGap += i
                     logInfo("silent section has been detected at the start: ${startGap.sampleCountToSec()}s")
                 }

@@ -23,7 +23,7 @@ class LiveQueueAudioProvider(remote: RemoteAudioProvider) : QueueAudioProvider(r
         status = Status.Active
         logInfo("queue size: ${queue.remainingCapacity().sampleCountToSec()}s")
         logInfo("estimate audio duration: ${duration.sampleCountToSec()}s")
-        while (true) {
+        while (status == Status.Active) {
             val data = remote.read() ?: break
             var dispose = 0
             data.toArray().forEach {
