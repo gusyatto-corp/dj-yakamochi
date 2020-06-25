@@ -68,7 +68,7 @@ class CrossFadePlayer(override val trackQueue: TrackQueue, override var agent: P
         }
 
         if (remainingSec < 15 && !nextTrackCheck && track(1) == null) {
-            agent?.requestNewTrack(trackQueue)
+            launch(Dispatchers.IO) { agent?.requestNewTrack(trackQueue) }
             nextTrackCheck = true
         }
 
