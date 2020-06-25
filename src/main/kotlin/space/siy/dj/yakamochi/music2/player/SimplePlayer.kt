@@ -15,7 +15,9 @@ import java.nio.ByteBuffer
  * @author SIY1121
  */
 @ExperimentalStdlibApi
-class SimplePlayer(val trackQueue: TrackQueue) : Player {
+class SimplePlayer(override val trackQueue: TrackQueue) : Player {
+
+    override var status = Player.Status.Stop
 
     private val onQueueChanged = {
         trackQueue.list().take(3).forEach { track ->
@@ -27,6 +29,7 @@ class SimplePlayer(val trackQueue: TrackQueue) : Player {
                         QueueAudioProvider(it)
                 }
         }
+        play()
     }
 
     init {
@@ -37,15 +40,18 @@ class SimplePlayer(val trackQueue: TrackQueue) : Player {
     fun track(i: Int) = trackQueue[i]
 
     override fun play() {
-
+        if (track(0) != null)
+            status = Player.Status.Play
     }
 
     override fun pause() {
-
+        if (track(0) != null)
+            status = Player.Status.Pause
     }
 
     override suspend fun skip() = withContext(Dispatchers.IO) {
-        trackQueue.done()
+        if (track(0) != null)
+            trackQueue.done()
     }
 
     override fun provide20MsAudio(): ByteBuffer = runBlocking {
@@ -56,6 +62,6 @@ class SimplePlayer(val trackQueue: TrackQueue) : Player {
         return@runBlocking buf
     }
 
-    override fun canProvide() = track(0)?.audioProvider?.canRead20Ms() ?: false
+    override fun canProvide() = status == Player.Status.Play && track(0)?.audioProvider?.canRead20Ms() ?: false
 
 }
