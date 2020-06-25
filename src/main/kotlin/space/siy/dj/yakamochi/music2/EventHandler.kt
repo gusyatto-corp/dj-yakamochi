@@ -28,7 +28,7 @@ class EventHandler : ListenerAdapter(), KoinComponent {
             event.checkDB()
             if (!event.message.isMentioned(event.jda.selfUser)) return@launch
             if (guildHandlers[event.guild.id] == null) {
-                guildHandlers[event.guild.id] = GuildHandler(event.guild.id)
+                guildHandlers[event.guild.id] = GuildHandler(event.guild.id, event.jda.selfUser.id)
             }
             guildHandlers[event.guild.id]?.onMessageReceived(event)
         }

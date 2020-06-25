@@ -2,15 +2,17 @@ package space.siy.dj.yakamochi.music2
 
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import space.siy.dj.yakamochi.music2.player.CrossFadePlayer
+import space.siy.dj.yakamochi.music2.player.RandomHistoryPlayerAgent
 import space.siy.dj.yakamochi.music2.track.TrackQueue
 
 /**
  * @author SIY1121
  */
 @ExperimentalStdlibApi
-class GuildHandler(private val guildID: String) {
+class GuildHandler(private val guildID: String, private val djID: String) {
     private val trackQueue = TrackQueue(guildID)
-    private val player = CrossFadePlayer(trackQueue)
+    private val player = CrossFadePlayer(trackQueue, RandomHistoryPlayerAgent(guildID, djID))
+
 
     suspend fun onMessageReceived(event: MessageReceivedEvent) {
         when {

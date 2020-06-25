@@ -21,6 +21,8 @@ interface Player : AudioSendHandler {
         get() = trackQueue.list().firstOrNull()?.audioProvider?.position?.sampleCountToSec() ?: 0f
     val status: Status
 
+    var agent: PlayerAgent?
+
     val queue: List<VideoInfo>
         get() = trackQueue.list()
 

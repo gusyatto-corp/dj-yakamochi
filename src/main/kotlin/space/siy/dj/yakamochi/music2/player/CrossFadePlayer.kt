@@ -16,10 +16,10 @@ import kotlin.math.sqrt
  * @author SIY1121
  */
 @ExperimentalStdlibApi
-class CrossFadePlayer(override val trackQueue: TrackQueue) : Player {
+class CrossFadePlayer(override val trackQueue: TrackQueue, override var agent: PlayerAgent? = null) : Player {
 
     override var status = Player.Status.Stop
-
+    private var nextTrackCheck = false
     val crossFadeDuration = 2f
     var skiping = -1f
     private val onQueueChanged = {
@@ -48,6 +48,8 @@ class CrossFadePlayer(override val trackQueue: TrackQueue) : Player {
     }
 
     override suspend fun skip() {
+        if (track(1) == null)
+            agent?.requestNewTrack(trackQueue)
         if (track(0) != null)
             skiping = crossFadeDuration
 //        track(1)?.audioProvider?.position = track(0)?.audioProvider?.position ?: 0
@@ -63,6 +65,11 @@ class CrossFadePlayer(override val trackQueue: TrackQueue) : Player {
             skiping > 0 -> skiping
             nowPlayingAudioProvider.duration == 0 -> crossFadeDuration + 1
             else -> nowPlayingAudioProvider.duration.sampleCountToSec() - nowPlayingAudioProvider.position.sampleCountToSec()
+        }
+
+        if (remainingSec < 15 && !nextTrackCheck && track(1) == null) {
+            agent?.requestNewTrack(trackQueue)
+            nextTrackCheck = true
         }
 
         if (remainingSec <= crossFadeDuration) {
@@ -85,6 +92,7 @@ class CrossFadePlayer(override val trackQueue: TrackQueue) : Player {
         if (remainingSec <= 0.03f) {
             launch(Dispatchers.IO) { trackQueue.done() }
             skiping = -1f
+            nextTrackCheck = false
         }
 
         buf.asShortBuffer().put(nowPlayingAudioData)

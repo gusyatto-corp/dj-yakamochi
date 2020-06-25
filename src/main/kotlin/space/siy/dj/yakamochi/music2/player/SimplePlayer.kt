@@ -15,7 +15,7 @@ import java.nio.ByteBuffer
  * @author SIY1121
  */
 @ExperimentalStdlibApi
-class SimplePlayer(override val trackQueue: TrackQueue) : Player {
+class SimplePlayer(override val trackQueue: TrackQueue, override var agent: PlayerAgent? = null) : Player {
 
     override var status = Player.Status.Stop
 
@@ -50,15 +50,23 @@ class SimplePlayer(override val trackQueue: TrackQueue) : Player {
     }
 
     override suspend fun skip() = withContext(Dispatchers.IO) {
-        if (track(0) != null)
+        if (track(1) == null)
+            agent?.requestNewTrack(trackQueue)
+
+        if (track(0) != null) {
             trackQueue.done()
+        }
     }
 
     override fun provide20MsAudio(): ByteBuffer = runBlocking {
         val buf = ByteBuffer.allocate(0.02f.secToSampleCount() * Short.SIZE_BYTES)
         buf.asShortBuffer().put(track(0)?.audioProvider?.read20Ms())
         if (track(0)?.audioProvider?.status == AudioProvider.Status.End)
-            launch { trackQueue.done() }
+            launch {
+                if (track(1) == null)
+                    agent?.requestNewTrack(trackQueue)
+                trackQueue.done()
+            }
         return@runBlocking buf
     }
 
