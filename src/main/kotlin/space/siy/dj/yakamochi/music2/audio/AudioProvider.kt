@@ -15,7 +15,7 @@ import java.nio.ShortBuffer
 abstract class AudioProvider(protected val remote: RemoteAudioProvider) {
     companion object {
         val scope = CoroutineScope(Dispatchers.IO)
-        fun AudioProvider.logInfo(msg: String) = logger().info("[{}] {}", remote.title, msg )
+        fun AudioProvider.logInfo(msg: String) = logger().info("[{}] {}", remote.source, msg )
     }
     abstract val duration: Int
     abstract val available: Int

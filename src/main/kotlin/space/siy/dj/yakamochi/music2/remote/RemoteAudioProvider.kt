@@ -8,7 +8,6 @@ import java.nio.ShortBuffer
  * @author SIY1121
  */
 interface RemoteAudioProvider {
-    val title: String
     val source: String
     val format: String
     val estimateDuration: Float

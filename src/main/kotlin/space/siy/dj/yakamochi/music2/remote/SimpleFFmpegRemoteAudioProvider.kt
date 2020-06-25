@@ -11,7 +11,7 @@ import java.nio.ShortBuffer
  * リモートからの読み取りもすべてFFmpegに任せるProvider
  * @author SIY1121
  */
-class SimpleFFmpegRemoteAudioProvider(private val inputStream: InputStream, override val estimateDuration: Float = -1f, override val title: String, override val source: String) : RemoteAudioProvider {
+class SimpleFFmpegRemoteAudioProvider(private val inputStream: InputStream, override val source: String, override val estimateDuration: Float) : RemoteAudioProvider {
     private var grabber: FFmpegFrameGrabber? = null
 
     override val format: String

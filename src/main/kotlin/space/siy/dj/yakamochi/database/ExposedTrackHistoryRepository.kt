@@ -42,7 +42,7 @@ class ExposedTrackHistoryRepository : TrackHistoryRepository {
     }
 
     private fun TrackHistoryDAO.transform() = TrackHistory(
-            this.id.value, this.title, this.thumbnail, this.url, this.duration, this.author.transform(), this.guild.transform(), this.createdAt, this.done
+            this.id.value, this.title, this.thumbnail, this.url, this.duration.toFloat(), this.author.transform(), this.guild.transform(), this.createdAt, this.done
     )
 
     private fun UserDAO.transform() = User(this.id.value, this.name, this.icon)

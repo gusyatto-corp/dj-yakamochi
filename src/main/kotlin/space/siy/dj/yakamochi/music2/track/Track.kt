@@ -15,7 +15,7 @@ import space.siy.dj.yakamochi.database.User
 /**
  * @author SIY1121
  */
-abstract class Track protected constructor(private val trackHistory: TrackHistory) : KoinComponent {
+abstract class Track protected constructor(protected val trackHistory: TrackHistory) : KoinComponent, space.siy.dj.yakamochi.music2.VideoInfo {
     private val repository: TrackHistoryRepository by inject()
 
     private var remoteAudioProvider: RemoteAudioProvider? = null
@@ -24,20 +24,19 @@ abstract class Track protected constructor(private val trackHistory: TrackHistor
     val audioInitialized: Boolean
         get() = audioProvider != null
 
-
     val trackID: Int
         get() = trackHistory.id
 
-    val title: String
+    override val title: String
         get() = trackHistory.title
 
-    val thumbnail: String
+    override val thumbnail: String
         get() = trackHistory.thumbnail
 
-    val duration: Float
-        get() = audioProvider?.duration?.sampleCountToSec() ?: trackHistory.duration.toFloat()
+    override val duration: Float
+        get() = audioProvider?.duration?.sampleCountToSec() ?: trackHistory.duration
 
-    val url: String
+    override val url: String
         get() = trackHistory.url
 
     val author: User
@@ -51,10 +50,10 @@ abstract class Track protected constructor(private val trackHistory: TrackHistor
 
         fun newYoutubeDLTrack(url: String, author: String, guild: String, _info: VideoInfo? = null): Track {
             val info = _info ?: YoutubeDL.getVideoInfo(url)
-            return YoutubeDLTrack(new(url, info.title, info.thumbnail, info.duration, author, guild), info)
+            return YoutubeDLTrack(new(url, info.title, info.thumbnail, info.duration, author, guild), info.formats)
         }
 
-        fun fromHistory(trackHistory: TrackHistory) = YoutubeDLTrack(trackHistory, YoutubeDL.getVideoInfo(trackHistory.url))
+        fun fromHistory(trackHistory: TrackHistory) = YoutubeDLTrack(trackHistory, YoutubeDL.getFormats(trackHistory.url))
     }
 
     protected abstract fun prepareRemoteAudio(): RemoteAudioProvider
