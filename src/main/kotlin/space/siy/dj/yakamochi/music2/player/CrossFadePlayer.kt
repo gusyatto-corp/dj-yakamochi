@@ -1,6 +1,7 @@
 package space.siy.dj.yakamochi.music2.player
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import space.siy.dj.yakamochi.music2.audio.LiveQueueAudioProvider
@@ -68,7 +69,7 @@ class CrossFadePlayer(override val trackQueue: TrackQueue, override var agent: P
         }
 
         if (remainingSec < 15 && !nextTrackCheck && track(1) == null) {
-            launch(Dispatchers.IO) { agent?.requestNewTrack(trackQueue) }
+            GlobalScope.launch(Dispatchers.IO) { agent?.requestNewTrack(trackQueue) }
             nextTrackCheck = true
         }
 
@@ -90,7 +91,7 @@ class CrossFadePlayer(override val trackQueue: TrackQueue, override var agent: P
 
 
         if (remainingSec <= 0.03f) {
-            launch(Dispatchers.IO) { trackQueue.done() }
+            GlobalScope.launch(Dispatchers.IO) { trackQueue.done() }
             skiping = -1f
             nextTrackCheck = false
         }
