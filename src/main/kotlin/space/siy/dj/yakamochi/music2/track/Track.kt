@@ -2,6 +2,8 @@ package space.siy.dj.yakamochi.music2.track
 
 import com.sapher.youtubedl.YoutubeDL
 import com.sapher.youtubedl.mapper.VideoInfo
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.koin.core.KoinComponent
 import org.koin.core.inject
 import space.siy.dj.yakamochi.music2.audio.AudioProvider
@@ -48,10 +50,11 @@ abstract class Track protected constructor(protected val trackHistory: TrackHist
         private fun new(url: String, title: String, thumbnail: String, duration: Int, author: String, guild: String) =
                 repository.new(url, title, thumbnail, duration, author, guild)
 
-        fun newYoutubeDLTrack(url: String, author: String, guild: String, _info: VideoInfo? = null): Track {
-            val info = _info ?: YoutubeDL.getVideoInfo(url)
-            return YoutubeDLTrack(new(url, info.title, info.thumbnail, info.duration, author, guild), info.formats)
-        }
+        suspend fun newYoutubeDLTrack(url: String, author: String, guild: String, _info: VideoInfo? = null): Track =
+                withContext(Dispatchers.IO) {
+                    val info = _info ?: YoutubeDL.getVideoInfo(url)
+                    return@withContext YoutubeDLTrack(new(url, info.title, info.thumbnail, info.duration, author, guild), info.formats)
+                }
 
         fun fromHistory(trackHistory: TrackHistory) = YoutubeDLTrack(trackHistory, YoutubeDL.getFormats(trackHistory.url))
     }
