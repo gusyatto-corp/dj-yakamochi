@@ -68,7 +68,7 @@ class CrossFadePlayer(override val trackQueue: TrackQueue, override var agent: P
             else -> nowPlayingAudioProvider.duration.sampleCountToSec() - nowPlayingAudioProvider.position.sampleCountToSec()
         }
 
-        if (remainingSec < 15 && !nextTrackCheck && track(1) == null) {
+        if (remainingSec < 20 && !nextTrackCheck && track(1) == null) {
             GlobalScope.launch(Dispatchers.IO) { agent?.requestNewTrack(trackQueue) }
             nextTrackCheck = true
         }

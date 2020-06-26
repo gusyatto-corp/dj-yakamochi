@@ -13,7 +13,7 @@ import space.siy.dj.yakamochi.music2.track.TrackQueue
 class RandomHistoryPlayerAgent(val guildID: String, val djID: String) : PlayerAgent, KoinComponent {
     private val trackHistoryRepository: TrackHistoryRepository by inject()
     override suspend fun requestNewTrack(trackQueue: TrackQueue) {
-        val newTrack = Track.fromHistory(trackHistoryRepository.listAll(guildID, true).random())
+        val newTrack = Track.fromHistory(trackHistoryRepository.rand(guildID, true))
         trackQueue.addTrack(newTrack.url, djID, guildID)
     }
 }

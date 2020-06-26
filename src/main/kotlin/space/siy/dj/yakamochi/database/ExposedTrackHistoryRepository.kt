@@ -3,6 +3,7 @@ package space.siy.dj.yakamochi.database
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.joda.time.DateTime
+import kotlin.random.Random
 
 /**
  * @author SIY1121
@@ -39,6 +40,13 @@ class ExposedTrackHistoryRepository : TrackHistoryRepository {
 
     override fun listAll(guild: String, done: Boolean): List<TrackHistory> = transaction {
         TrackHistoryDAO.find { (TrackHistoriesTable.guild eq guild) and (TrackHistoriesTable.done eq done) }.map { it.transform() }
+    }
+
+    override fun rand(guild: String, distinct: Boolean) = transaction {
+        if (distinct)
+            TrackHistoryDAO.find { TrackHistoriesTable.guild eq guild }.distinctBy { it.url }.random().transform()
+        else
+            TrackHistoryDAO.find { TrackHistoriesTable.guild eq guild }.toList().random().transform()
     }
 
     private fun TrackHistoryDAO.transform() = TrackHistory(
