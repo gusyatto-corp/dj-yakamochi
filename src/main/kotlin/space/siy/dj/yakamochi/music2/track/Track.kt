@@ -17,11 +17,11 @@ import space.siy.dj.yakamochi.database.User
 /**
  * @author SIY1121
  */
-abstract class Track protected constructor(protected val trackHistory: TrackHistory) : KoinComponent, space.siy.dj.yakamochi.music2.VideoInfo {
+abstract class Track<T : AudioProvider> protected constructor(protected val trackHistory: TrackHistory) : KoinComponent, space.siy.dj.yakamochi.music2.VideoInfo {
     private val repository: TrackHistoryRepository by inject()
 
     private var remoteAudioProvider: RemoteAudioProvider? = null
-    var audioProvider: AudioProvider? = null
+    var audioProvider: T? = null
 
     val audioInitialized: Boolean
         get() = audioProvider != null
@@ -50,18 +50,18 @@ abstract class Track protected constructor(protected val trackHistory: TrackHist
         private fun new(url: String, title: String, thumbnail: String, duration: Int, author: String, guild: String) =
                 repository.new(url, title, thumbnail, duration, author, guild)
 
-        suspend fun newYoutubeDLTrack(url: String, author: String, guild: String, _info: VideoInfo? = null): Track =
+        suspend fun <T: AudioProvider> newYoutubeDLTrack(url: String, author: String, guild: String, _info: VideoInfo? = null): Track<T> =
                 withContext(Dispatchers.IO) {
                     val info = _info ?: YoutubeDL.getVideoInfo(url)
-                    return@withContext YoutubeDLTrack(new(url, info.title, info.thumbnail, info.duration, author, guild), info.formats)
+                    return@withContext YoutubeDLTrack<T>(new(url, info.title, info.thumbnail, info.duration, author, guild), info.formats)
                 }
 
-        fun fromHistory(trackHistory: TrackHistory) = YoutubeDLTrack(trackHistory, YoutubeDL.getFormats(trackHistory.url))
+        fun <T: AudioProvider> fromHistory(trackHistory: TrackHistory) = YoutubeDLTrack<T>(trackHistory, YoutubeDL.getFormats(trackHistory.url))
     }
 
     protected abstract fun prepareRemoteAudio(): RemoteAudioProvider
 
-    fun prepareAudio(block: (it: RemoteAudioProvider) -> AudioProvider) {
+    fun prepareAudio(block: (it: RemoteAudioProvider) -> T) {
         val _remoteAudioProvider = prepareRemoteAudio()
         remoteAudioProvider = _remoteAudioProvider
         audioProvider = block(_remoteAudioProvider).apply { start() }

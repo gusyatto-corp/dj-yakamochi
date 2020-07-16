@@ -13,8 +13,9 @@ fun Number.secToSampleCount() = (this.toFloat() * SAMPLE_RATE * CHANNEL_COUNT).t
 
 fun Number.sampleCountToSec() = (this.toFloat() / SAMPLE_RATE / CHANNEL_COUNT)
 
-fun ShortBuffer.toArray(): ShortArray {
-    val arr = ShortArray(limit())
+fun ShortBuffer.toArray(size: Int = -1): ShortArray {
+    position(0)
+    val arr = ShortArray(if (size < 0) limit() else size)
     get(arr)
     return arr
 }

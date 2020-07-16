@@ -1,17 +1,15 @@
 package space.siy.dj.yakamochi.music2
 
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
-import space.siy.dj.yakamochi.music2.player.CrossFadePlayer
-import space.siy.dj.yakamochi.music2.player.RandomHistoryPlayerAgent
-import space.siy.dj.yakamochi.music2.track.TrackQueue
+import space.siy.dj.yakamochi.music2.player.DJPlayer
+import space.siy.dj.yakamochi.music2.player.SimplePlayer
 
 /**
  * @author SIY1121
  */
 @ExperimentalStdlibApi
 class GuildHandler(private val guildID: String, private val djID: String) {
-    private val trackQueue = TrackQueue(guildID)
-    private val player = CrossFadePlayer(trackQueue, RandomHistoryPlayerAgent(guildID, djID))
+    private val player = DJPlayer(guildID)
 
 
     suspend fun onMessageReceived(event: MessageReceivedEvent) {
@@ -19,7 +17,10 @@ class GuildHandler(private val guildID: String, private val djID: String) {
             event.message.contentRaw.matches(Regex("[\\s\\S]*?お[\\s\\S]*?い[\\s\\S]*?で[\\s\\S]*?")) -> {
                 val channel = event.member?.voiceState?.channel ?: return
                 event.guild.audioManager.run {
-                    sendingHandler = player.apply { play() }
+                    sendingHandler = player.apply {
+                        init()
+                        play()
+                    }
                     openAudioConnection(channel)
                 }
             }
@@ -31,7 +32,7 @@ class GuildHandler(private val guildID: String, private val djID: String) {
             }
             else -> {
                 val url = event.message.contentRaw.matchUrl() ?: return
-                trackQueue.addTrack(url, event.author.id, event.guild.id)
+                player.queue(url, event.author.id, guildID)
                 event.message.addReaction("🎵").queue()
             }
         }

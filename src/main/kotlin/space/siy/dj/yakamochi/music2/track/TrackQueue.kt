@@ -5,51 +5,44 @@ import kotlinx.coroutines.withContext
 import org.koin.core.KoinComponent
 import org.koin.core.inject
 import space.siy.dj.yakamochi.database.TrackHistoryRepository
-import java.util.concurrent.LinkedBlockingQueue
+import space.siy.dj.yakamochi.music2.audio.AudioProvider
+import space.siy.dj.yakamochi.music2.remote.RemoteAudioProvider
 
 /**
  * @author SIY1121
  */
 @ExperimentalStdlibApi
-class TrackQueue(val guild: String) : KoinComponent {
-    val queue = ArrayDeque<Track>()
-    val listeners: MutableList<() -> Unit> = mutableListOf()
+class TrackQueue<T : AudioProvider>(val guildID: String) : TrackProvider<T>, KoinComponent {
+
+    val queue = ArrayDeque<Track<T>>()
     val trackHistoryRepository by inject<TrackHistoryRepository>()
 
-    init {
-        trackHistoryRepository.listAll(guild, false).forEach { queue.add(Track.fromHistory(it)) }
-        notifyQueueChanged()
+    suspend fun loadFromHistory() {
+        trackHistoryRepository.listAll(guildID, false).map { history ->
+            val track = Track.fromHistory<T>(history)
+            queue.add(track)
+            track
+        }.take(1).forEach {track->
+            track.prepareAudio { audioProviderCreator!!(it) }
+        }
     }
 
-    suspend fun addTrack(url: String, author: String, guild: String) = withContext(Dispatchers.IO) {
-        queue.add(Track.newYoutubeDLTrack(url, author, guild))
-        notifyQueueChanged()
+    suspend fun queue(url: String, author: String, guild: String) = withContext(Dispatchers.IO) {
+        if (audioProviderCreator == null) throw Exception("AudioProviderCreator is not set")
+
+        val track = Track.newYoutubeDLTrack<T>(url, author, guild)
+        track.prepareAudio { audioProviderCreator!!(it) }
+        queue.add(track)
     }
 
-    suspend fun removeTrack(trackID: Int) = withContext(Dispatchers.IO) {
-        val targetTrack = queue.find { it.trackID == trackID } ?: return@withContext
-        targetTrack.remove()
-        queue.remove(targetTrack)
-        notifyQueueChanged()
+    override fun canProvide() = queue.size > 0
+
+    override var audioProviderCreator: ((remoteAudioProvider: RemoteAudioProvider) -> T)? = null
+
+    override suspend fun requestTrack(): Track<T> {
+        val res = queue.removeFirst()
+        if (queue.firstOrNull() != null)
+            queue.first().prepareAudio { audioProviderCreator!!(it) }
+        return res
     }
-
-    fun list(): List<Track> = queue
-
-    operator fun get(index: Int) = if (queue.size <= index) null else queue[index]
-
-    suspend fun done() = withContext(Dispatchers.IO) {
-        val targetTrack = queue.removeFirst()
-        targetTrack.done()
-        notifyQueueChanged()
-    }
-
-    fun addQueueChangedListener(block: () -> Unit) {
-        listeners.add(block)
-    }
-
-    fun removeQueueChangedListener(block: () -> Unit) {
-        listeners.remove { block }
-    }
-
-    private fun notifyQueueChanged() = listeners.forEach { it() }
 }
