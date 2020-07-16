@@ -51,6 +51,10 @@ dependencies {
 
     implementation "ch.qos.logback:logback-classic:+"
 
+    implementation group: 'uk.me.berndporr', name:'iirj', version: '1.1'
+
+    compile project(':music-analyzer-kt')
+
     // Use the Kotlin JUnit integration.
     testImplementation 'org.jetbrains.kotlin:kotlin-test-junit'
 }
