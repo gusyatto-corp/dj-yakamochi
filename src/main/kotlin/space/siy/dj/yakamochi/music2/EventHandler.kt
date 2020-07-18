@@ -46,3 +46,5 @@ fun String.matchUrl(): String? {
     val regex = Regex("http(s)?:\\/\\/([\\w-]+\\.)+[\\w-]+(\\/[\\w- .\\/?%&=]*)?")
     return regex.find(this)?.value
 }
+
+fun String.matchYoutubePlaylistID() = Regex("&list=(.*?)(?=(\$|&))").find(this)?.groupValues?.get(1)
