@@ -22,7 +22,7 @@ class TrackQueue<T : AudioProvider>(val guildID: String) : TrackProvider<T>, Koi
             val track = Track.fromHistory<T>(history)
             queue.add(track)
             track
-        }.take(1).forEach {track->
+        }.take(1).forEach { track ->
             track.prepareAudio { audioProviderCreator!!(it) }
         }
     }
@@ -31,7 +31,7 @@ class TrackQueue<T : AudioProvider>(val guildID: String) : TrackProvider<T>, Koi
         if (audioProviderCreator == null) throw Exception("AudioProviderCreator is not set")
 
         val track = Track.newYoutubeDLTrack<T>(url, author, guild)
-        track.prepareAudio { audioProviderCreator!!(it) }
+//        track.prepareAudio { audioProviderCreator!!(it) }
         queue.add(track)
     }
 
@@ -40,7 +40,9 @@ class TrackQueue<T : AudioProvider>(val guildID: String) : TrackProvider<T>, Koi
     override var audioProviderCreator: ((remoteAudioProvider: RemoteAudioProvider) -> T)? = null
 
     override suspend fun requestTrack(): Track<T> {
-        val res = queue.removeFirst()
+        val res = queue.removeFirst().apply {
+            if (!audioInitialized) prepareAudio { audioProviderCreator!!(it) }
+        }
         if (queue.firstOrNull() != null)
             queue.first().prepareAudio { audioProviderCreator!!(it) }
         return res
