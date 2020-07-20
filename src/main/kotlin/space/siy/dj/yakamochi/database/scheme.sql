@@ -29,3 +29,13 @@ create table track_histories
     foreign key (author) references users (id),
     foreign key (guild) references guilds (id)
 );
+
+create table auth (
+    id serial,
+    user_id text,
+    provider text,
+    access_token text,
+    refresh_token text,
+    primary key(id),
+    foreign key (user_id) references users(id)
+)

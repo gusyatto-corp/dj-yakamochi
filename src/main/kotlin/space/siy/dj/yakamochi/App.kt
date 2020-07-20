@@ -10,10 +10,6 @@ import org.slf4j.LoggerFactory
 import space.siy.dj.yakamochi.database.*
 
 import io.ktor.util.KtorExperimentalAPI
-import kotlinx.coroutines.runBlocking
-import space.siy.dj.yakamochi.auth.AuthProvider
-import space.siy.dj.yakamochi.auth.Server
-import space.siy.dj.yakamochi.music_service.Youtube
 
 val repositoryModule = module {
     single { ExposedTrackHistoryRepository() as TrackHistoryRepository }
