@@ -42,14 +42,17 @@ class GuildHandler(private val guildID: String, private val djID: String) {
                 when (MusicServiceManager.resourceType(url)) {
                     MusicService.ResourceType.Video -> {
                         player.queue(url, event.author.id, guildID) {
-                            event.message.clearReactions().complete()
+                            event.message.removeReaction("🎵").queue()
                             event.message.addReaction("✅").queue()
                         }
                         event.message.addReaction("🎵").queue()
                     }
                     MusicService.ResourceType.Playlist -> {
                         player.setPlaylist(url, event.author.id) {
-                            event.message.clearReactions().complete()
+                            event.message.removeReaction("🎵").queue()
+                            event.message.removeReaction("🔁").queue()
+                            event.message.removeReaction("🔀").queue()
+                            event.message.removeReaction("❌").queue()
                             event.message.addReaction("✅").queue()
                         }
                         event.message.addReaction("🎵").queue()
@@ -80,7 +83,7 @@ class GuildHandler(private val guildID: String, private val djID: String) {
     }
 
     suspend fun onMessageReactionRemove(event: MessageReactionRemoveEvent) {
-        when(event.reactionEmote.name) {
+        when (event.reactionEmote.name) {
             "🔁" -> player.setPlaylistRepeat(false)
             "🔀" -> player.setPlaylistRandom(false)
         }
