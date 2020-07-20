@@ -72,9 +72,9 @@ class DJPlayer(guildID: String) : Player<AnalyzedAudioProvider>(guildID) {
             }
         }
 //         test
-        if (pos > 15.secToSampleCount() + nowProvider.startPos && pos < 20.secToSampleCount() + nowProvider.startPos) {
-            nowProvider.seek(nowProvider.endPos - 25.secToSampleCount())
-        }
+//        if (pos > 15.secToSampleCount() + nowProvider.startPos && pos < 20.secToSampleCount() + nowProvider.startPos) {
+//            nowProvider.seek(nowProvider.endPos - 25.secToSampleCount())
+//        }
 
         if (nowProvider.status == AudioProvider.Status.End) {
             doneTrack(nowPlayingTrack!!)

@@ -42,17 +42,14 @@ class GuildHandler(private val guildID: String, private val djID: String) {
                 when (MusicServiceManager.resourceType(url)) {
                     MusicService.ResourceType.Video -> {
                         player.queue(url, event.author.id, guildID) {
-                            event.message.removeReaction("🎵").queue()
+                            event.message.clearReactions().complete()
                             event.message.addReaction("✅").queue()
                         }
                         event.message.addReaction("🎵").queue()
                     }
                     MusicService.ResourceType.Playlist -> {
                         player.setPlaylist(url, event.author.id) {
-                            event.message.removeReaction("🎵").queue()
-                            event.message.removeReaction("🔁").queue()
-                            event.message.removeReaction("🔀").queue()
-                            event.message.removeReaction("❌").queue()
+                            event.message.clearReactions().complete()
                             event.message.addReaction("✅").queue()
                         }
                         event.message.addReaction("🎵").queue()
