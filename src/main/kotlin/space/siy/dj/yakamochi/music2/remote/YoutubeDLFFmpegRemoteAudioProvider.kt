@@ -7,16 +7,18 @@ import kotlinx.coroutines.withContext
 import org.bytedeco.javacv.FFmpegFrameGrabber
 import org.bytedeco.javacv.FrameGrabber
 import space.siy.dj.yakamochi.music2.VideoInfo
+import space.siy.dj.yakamochi.music2.VideoSourceInfo
+import space.siy.dj.yakamochi.music_service.MusicServiceManager
 import java.nio.ShortBuffer
 
 /**
  * FFMpegがサポートしてないMPD等の読み込みをYoutubeDLに肩代わりさせるProvider
  * @author SIY1121
  */
-class YoutubeDLFFmpegRemoteAudioProvider(private val videoInfo: VideoInfo, private val _formatsInfo: List<VideoFormat>? = null) : RemoteAudioProvider {
+class YoutubeDLFFmpegRemoteAudioProvider(private val videoInfo: VideoInfo, private val info: List<VideoSourceInfo>) : RemoteAudioProvider {
     private var grabber: FFmpegFrameGrabber? = null
     private var ytdlProcess: Process? = null
-    private var targetFormat: VideoFormat? = null
+    private var targetFormat: VideoSourceInfo? = null
 
     override val format: String
         get() = if (targetFormat != null) targetFormat!!.format else ""
@@ -26,7 +28,6 @@ class YoutubeDLFFmpegRemoteAudioProvider(private val videoInfo: VideoInfo, priva
         get() = videoInfo.title
 
     override suspend fun start() = withContext(Dispatchers.IO) {
-        val info = this@YoutubeDLFFmpegRemoteAudioProvider._formatsInfo ?: YoutubeDL.getFormats(videoInfo.url)
         val targetFormat = info.filter { it.acodec == "opus" }.maxBy { it.abr } ?: info.last()
         this@YoutubeDLFFmpegRemoteAudioProvider.targetFormat = targetFormat
 

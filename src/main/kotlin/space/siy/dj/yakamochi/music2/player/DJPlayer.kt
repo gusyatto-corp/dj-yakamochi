@@ -1,5 +1,7 @@
 package space.siy.dj.yakamochi.music2.player
 
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import space.siy.dj.yakamochi.music2.VideoInfo
 import space.siy.dj.yakamochi.music2.audio.AnalyzedAudioProvider
@@ -26,10 +28,11 @@ class DJPlayer(guildID: String) : Player<AnalyzedAudioProvider>(guildID) {
     }
 
     var nextTrack: Track<AnalyzedAudioProvider>? = null
+    var requestedNext = false
 
     override suspend fun play() {
         if (nowPlayingTrack == null) nowPlayingTrack = trackProviders.requestTrack()
-        status = Player.Status.Play
+        status = Status.Play
     }
 
     override suspend fun pause() {
@@ -37,14 +40,18 @@ class DJPlayer(guildID: String) : Player<AnalyzedAudioProvider>(guildID) {
     }
 
     override suspend fun skip() {
-        TODO("Not yet implemented")
+        nowPlayingTrack = trackProviders.requestTrack()
     }
 
     override fun provide20MsAudio(): ByteBuffer = runBlocking {
         val buf = ByteBuffer.allocate(0.02f.secToSampleCount() * Short.SIZE_BYTES)
         val nowProvider = nowPlayingTrack?.audioProvider ?: return@runBlocking buf
-        if (nowProvider.endPos - nowProvider.position < 20.secToSampleCount() && nextTrack == null) {
-            nextTrack = trackProviders.requestTrack()
+        if (nowProvider.endPos - nowProvider.position < 20.secToSampleCount() && nextTrack == null && !requestedNext) {
+            requestedNext = true
+            GlobalScope.launch {
+                nextTrack = trackProviders.requestTrack()
+                requestedNext = false
+            }
         }
         val pos = nowProvider.position
         var arr = nowProvider.read20Ms().toArray().map { (it * 0.5f).toShort() }.toShortArray()
@@ -67,19 +74,10 @@ class DJPlayer(guildID: String) : Player<AnalyzedAudioProvider>(guildID) {
 //        }
 
         if (nowProvider.status == AudioProvider.Status.End) {
-            nowPlayingTrack?.done()
+            doneTrack(nowPlayingTrack!!)
             nowPlayingTrack = nextTrack
             nextTrack = null
         }
-//        val requiredSample = 0.02f.secToSampleCount().coerceAtMost(nowProvider.endPos - nowProvider.position)
-//        var arr = nowProvider.read(requiredSample).toArray()
-//        if (requiredSample < 0.02f.secToSampleCount()) {
-//            val requiredNextSample = 0.02f.secToSampleCount() - (nowProvider.endPos - nowProvider.position)
-//            nextTrack?.audioProvider?.seek(nextTrack?.audioProvider?.startPos ?: 0)
-//            arr += nextTrack?.audioProvider?.read(requiredNextSample)?.toArray() ?: ShortArray(requiredNextSample)
-//            nowPlayingTrack = nextTrack
-//            nextTrack = null
-//        }
         buf.asShortBuffer().put(arr)
         return@runBlocking buf
     }

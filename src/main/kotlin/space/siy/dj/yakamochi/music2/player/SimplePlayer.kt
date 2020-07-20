@@ -39,7 +39,7 @@ class SimplePlayer(guildID: String) : Player<AudioProvider>(guildID) {
         val buf = ByteBuffer.allocate(0.02f.secToSampleCount() * Short.SIZE_BYTES)
         buf.asShortBuffer().put(nowPlayingTrack?.audioProvider?.read20Ms())
         if (nowPlayingTrack?.audioProvider?.status == AudioProvider.Status.End) {
-            nowPlayingTrack?.done()
+            doneTrack(nowPlayingTrack!!)
             nowPlayingTrack = trackProviders.requestTrack()
         }
         return@runBlocking buf

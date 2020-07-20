@@ -4,6 +4,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
+import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent
+import net.dv8tion.jda.api.events.message.react.MessageReactionRemoveEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
 import org.koin.core.KoinComponent
 import org.koin.core.inject
@@ -25,7 +27,13 @@ class EventHandler : ListenerAdapter(), KoinComponent {
 
     override fun onMessageReceived(event: MessageReceivedEvent) {
         receiverScope.launch {
+            if (event.author.id == event.jda.selfUser.id) return@launch
             event.checkDB()
+            if (!event.channelType.isGuild) {
+//                PrivateHandler.onMessageReceived(event)
+                return@launch
+            }
+
             if (!event.message.isMentioned(event.jda.selfUser)) return@launch
             if (guildHandlers[event.guild.id] == null) {
                 guildHandlers[event.guild.id] = GuildHandler(event.guild.id, event.jda.selfUser.id)
@@ -34,8 +42,26 @@ class EventHandler : ListenerAdapter(), KoinComponent {
         }
     }
 
+    override fun onMessageReactionAdd(event: MessageReactionAddEvent) {
+        receiverScope.launch {
+            if (guildHandlers[event.guild.id] == null) {
+                guildHandlers[event.guild.id] = GuildHandler(event.guild.id, event.jda.selfUser.id)
+            }
+            guildHandlers[event.guild.id]?.onMessageReactionAdd(event)
+        }
+    }
+
+    override fun onMessageReactionRemove(event: MessageReactionRemoveEvent) {
+        receiverScope.launch {
+            if (guildHandlers[event.guild.id] == null) {
+                guildHandlers[event.guild.id] = GuildHandler(event.guild.id, event.jda.selfUser.id)
+            }
+            guildHandlers[event.guild.id]?.onMessageReactionRemove(event)
+        }
+    }
+
     private fun MessageReceivedEvent.checkDB() {
-        if (guildRepository.find(guild.id) == null)
+        if (channelType.isGuild && guildRepository.find(guild.id) == null)
             guildRepository.new(guild.id, guild.name, guild.iconUrl ?: "")
         if (userRepository.find(author.id) == null)
             userRepository.new(author.id, author.name, author.avatarUrl ?: "")
@@ -46,5 +72,3 @@ fun String.matchUrl(): String? {
     val regex = Regex("http(s)?:\\/\\/([\\w-]+\\.)+[\\w-]+(\\/[\\w- .\\/?%&=]*)?")
     return regex.find(this)?.value
 }
-
-fun String.matchYoutubePlaylistID() = Regex("&list=(.*?)(?=(\$|&))").find(this)?.groupValues?.get(1)

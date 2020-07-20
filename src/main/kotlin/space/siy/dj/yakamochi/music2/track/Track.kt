@@ -1,7 +1,6 @@
 package space.siy.dj.yakamochi.music2.track
 
 import com.sapher.youtubedl.YoutubeDL
-import com.sapher.youtubedl.mapper.VideoInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.core.KoinComponent
@@ -13,11 +12,13 @@ import space.siy.dj.yakamochi.database.ExposedTrackHistoryRepository
 import space.siy.dj.yakamochi.database.TrackHistory
 import space.siy.dj.yakamochi.database.TrackHistoryRepository
 import space.siy.dj.yakamochi.database.User
+import space.siy.dj.yakamochi.music2.VideoInfo
+import space.siy.dj.yakamochi.music_service.MusicServiceManager
 
 /**
  * @author SIY1121
  */
-abstract class Track<T : AudioProvider> protected constructor(protected val trackHistory: TrackHistory) : KoinComponent, space.siy.dj.yakamochi.music2.VideoInfo {
+class Track<T : AudioProvider> private constructor(private val trackHistory: TrackHistory) : KoinComponent, space.siy.dj.yakamochi.music2.VideoInfo {
     private val repository: TrackHistoryRepository by inject()
 
     private var remoteAudioProvider: RemoteAudioProvider? = null
@@ -50,19 +51,19 @@ abstract class Track<T : AudioProvider> protected constructor(protected val trac
         private fun new(url: String, title: String, thumbnail: String, duration: Int, author: String, guild: String) =
                 repository.new(url, title, thumbnail, duration, author, guild)
 
-        suspend fun <T: AudioProvider> newYoutubeDLTrack(url: String, author: String, guild: String, _info: VideoInfo? = null): Track<T> =
+        suspend fun <T : AudioProvider> newTrack(url: String, author: String, guild: String, _info: VideoInfo? = null): Track<T> =
                 withContext(Dispatchers.IO) {
-                    val info = _info ?: YoutubeDL.getVideoInfo(url)
-                    return@withContext YoutubeDLTrack<T>(new(url, info.title, info.thumbnail, info.duration, author, guild), info.formats)
+                    val info = _info ?: MusicServiceManager.detail(url) ?: throw Exception("トラックの情報を取得できませんでした")
+                    return@withContext Track<T>(new(url, info.title, info.thumbnail, info.duration.toInt(), author, guild))
                 }
 
-        fun <T: AudioProvider> fromHistory(trackHistory: TrackHistory) = YoutubeDLTrack<T>(trackHistory, YoutubeDL.getFormats(trackHistory.url))
+        fun <T : AudioProvider> fromHistory(trackHistory: TrackHistory) = Track<T>(trackHistory)
     }
 
-    protected abstract fun prepareRemoteAudio(): RemoteAudioProvider
+    private suspend fun prepareRemoteAudio() = MusicServiceManager.source(trackHistory.url)
 
-    fun prepareAudio(block: (it: RemoteAudioProvider) -> T) {
-        val _remoteAudioProvider = prepareRemoteAudio()
+    suspend fun prepareAudio(block: (it: RemoteAudioProvider) -> T) {
+        val _remoteAudioProvider = prepareRemoteAudio() ?: throw Exception("RemoteAudioSourceを作成できませんでした")
         remoteAudioProvider = _remoteAudioProvider
         audioProvider = block(_remoteAudioProvider).apply { start() }
     }

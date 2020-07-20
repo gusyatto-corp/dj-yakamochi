@@ -1,6 +1,7 @@
 package space.siy.dj.yakamochi.music2.track
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import org.koin.core.KoinComponent
 import org.koin.core.inject
@@ -22,29 +23,35 @@ class TrackQueue<T : AudioProvider>(val guildID: String) : TrackProvider<T>, Koi
             val track = Track.fromHistory<T>(history)
             queue.add(track)
             track
-        }.take(1).forEach { track ->
-            track.prepareAudio { audioProviderCreator!!(it) }
         }
     }
 
     suspend fun queue(url: String, author: String, guild: String) = withContext(Dispatchers.IO) {
         if (audioProviderCreator == null) throw Exception("AudioProviderCreator is not set")
 
-        val track = Track.newYoutubeDLTrack<T>(url, author, guild)
-//        track.prepareAudio { audioProviderCreator!!(it) }
-        queue.add(track)
+        Track.newTrack<T>(url, author, guild).apply{
+            queue.add(this)
+        }
     }
 
     override fun canProvide() = queue.size > 0
 
     override var audioProviderCreator: ((remoteAudioProvider: RemoteAudioProvider) -> T)? = null
 
-    override suspend fun requestTrack(): Track<T> {
-        val res = queue.removeFirst().apply {
-            if (!audioInitialized) prepareAudio { audioProviderCreator!!(it) }
+    override suspend fun requestTrack(): Track<T>? {
+        return try {
+            coroutineScope {
+                if (queue.size == 0) return@coroutineScope null
+                val res = queue.removeFirst().apply {
+                    if (!audioInitialized) prepareAudio { audioProviderCreator!!(it) }
+                }
+                if (queue.firstOrNull() != null)
+                    queue.first().prepareAudio { audioProviderCreator!!(it) }
+                return@coroutineScope res
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            requestTrack()
         }
-        if (queue.firstOrNull() != null)
-            queue.first().prepareAudio { audioProviderCreator!!(it) }
-        return res
     }
 }

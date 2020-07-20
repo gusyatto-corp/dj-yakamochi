@@ -1,16 +1,12 @@
 package space.siy.dj.yakamochi.music2.player
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import net.dv8tion.jda.api.audio.AudioSendHandler
+import space.siy.dj.yakamochi.database.TrackHistoryRepository
 import space.siy.dj.yakamochi.music2.VideoInfo
 import space.siy.dj.yakamochi.music2.audio.AudioProvider
 import space.siy.dj.yakamochi.music2.sampleCountToSec
 import space.siy.dj.yakamochi.music2.secToSampleCount
-import space.siy.dj.yakamochi.music2.track.FallbackTrackProvider
-import space.siy.dj.yakamochi.music2.track.Track
-import space.siy.dj.yakamochi.music2.track.TrackProvider
-import space.siy.dj.yakamochi.music2.track.TrackQueue
+import space.siy.dj.yakamochi.music2.track.*
 
 /**
  * @author SIY1121
@@ -19,8 +15,12 @@ import space.siy.dj.yakamochi.music2.track.TrackQueue
 abstract class Player<T : AudioProvider>(val guildID: String) : AudioSendHandler {
     protected var trackProviders = FallbackTrackProvider<T>()
     protected var trackQueue = TrackQueue<T>(guildID)
+    protected var playlistTrackProvider = PlaylistTrackProvider<T>(guildID)
+    protected var historyTrackProvider: HistoryTrackProvider<T>? = null
 
     protected var nowPlayingTrack: Track<T>? = null
+
+    val doneCallbackMap = HashMap<Int, () -> Unit>()
 
     val videoInfo: VideoInfo?
         get() = nowPlayingTrack
@@ -35,15 +35,50 @@ abstract class Player<T : AudioProvider>(val guildID: String) : AudioSendHandler
     suspend fun init() {
         trackProviders.add(trackQueue)
         trackQueue.loadFromHistory()
+        trackProviders.add(playlistTrackProvider)
     }
 
     abstract suspend fun play()
     abstract suspend fun pause()
     abstract suspend fun skip()
 
-    suspend fun queue(url: String, author: String, guild: String) {
-        trackQueue.queue(url, author, guild)
+    protected suspend fun doneTrack(track: Track<T>) {
+        track.done()
+        doneCallbackMap.remove(track.trackID)?.invoke()
+    }
+
+    suspend fun queue(url: String, author: String, guild: String, doneCallback: (() -> Unit)? = null) {
+        val track = trackQueue.queue(url, author, guild)
+        if (doneCallback != null)
+            doneCallbackMap[track.trackID] = doneCallback
         play()
+    }
+
+    suspend fun setPlaylist(url: String, author: String, doneCallback: (() -> Unit)? = null) {
+        playlistTrackProvider.setPlaylist(url, author, doneCallback)
+        play()
+    }
+
+    fun setPlaylistRandom(random: Boolean) {
+        playlistTrackProvider.random = random
+    }
+
+    fun setPlaylistRepeat(repeat: Boolean) {
+        playlistTrackProvider.repeat = repeat
+    }
+
+    fun clearPlaylist() {
+        playlistTrackProvider.clearPlaylist()
+    }
+
+    suspend fun setHistoryFallback(enable: Boolean) {
+        if (enable && historyTrackProvider == null) {
+            historyTrackProvider = HistoryTrackProvider(guildID)
+            trackProviders.add(historyTrackProvider!!)
+            play()
+        } else if (!enable && historyTrackProvider != null) {
+            trackProviders.remove(historyTrackProvider!!)
+        }
     }
 
     enum class Status {

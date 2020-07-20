@@ -1,11 +1,11 @@
 package space.siy.dj.yakamochi.music2
 
-import com.sapher.youtubedl.YoutubeDL
-import com.sapher.youtubedl.YoutubeDLRequest
-import kotlinx.coroutines.delay
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
+import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent
+import net.dv8tion.jda.api.events.message.react.MessageReactionRemoveEvent
 import space.siy.dj.yakamochi.music2.player.DJPlayer
-import space.siy.dj.yakamochi.music2.player.SimplePlayer
+import space.siy.dj.yakamochi.music_service.MusicService
+import space.siy.dj.yakamochi.music_service.MusicServiceManager
 
 /**
  * @author SIY1121
@@ -13,7 +13,7 @@ import space.siy.dj.yakamochi.music2.player.SimplePlayer
 @ExperimentalStdlibApi
 class GuildHandler(private val guildID: String, private val djID: String) {
     private val player = DJPlayer(guildID)
-
+    private var playlistMessageID: String? = null
 
     suspend fun onMessageReceived(event: MessageReceivedEvent) {
         val rawMsg = event.message.contentRaw
@@ -35,24 +35,54 @@ class GuildHandler(private val guildID: String, private val djID: String) {
             rawMsg.matches(Regex("[\\s\\S]*?([ばバ][\\s\\S]*?[いイ][\\s\\S]*?){2}[\\s\\S]*?")) -> {
                 event.guild.audioManager.closeAudioConnection()
             }
+            rawMsg.contains("enable history fallback") -> player.setHistoryFallback(true)
+            rawMsg.contains("disable history fallback") -> player.setHistoryFallback(false)
             else -> {
                 val url = rawMsg.matchUrl() ?: return
-                val playlistID = url.matchYoutubePlaylistID()
-                if (playlistID != null) {
-                    val isRandom = event.message.contentRaw.contains("random")
-                    val urls = YoutubeDL.execute(YoutubeDLRequest(url).apply {
-                        setOption("get-id")
-                    }).out.split("\n")
-                            .map { "https://www.youtube.com/watch?v=$it" }
-
-                    (if (isRandom) urls.shuffled() else urls).forEach {
-                        player.queue(it, event.author.id, guildID)
-                        delay(2000)
+                when (MusicServiceManager.resourceType(url)) {
+                    MusicService.ResourceType.Video -> {
+                        player.queue(url, event.author.id, guildID) {
+                            event.message.clearReactions().complete()
+                            event.message.addReaction("✅").queue()
+                        }
+                        event.message.addReaction("🎵").queue()
                     }
-                } else
-                    player.queue(url, event.author.id, guildID)
-                event.message.addReaction("🎵").queue()
+                    MusicService.ResourceType.Playlist -> {
+                        player.setPlaylist(url, event.author.id) {
+                            event.message.clearReactions().complete()
+                            event.message.addReaction("✅").queue()
+                        }
+                        event.message.addReaction("🎵").queue()
+                        event.message.addReaction("🔁").queue()
+                        event.message.addReaction("🔀").queue()
+                        event.message.addReaction("❌").queue()
+                        playlistMessageID = event.messageId
+                    }
+                    MusicService.ResourceType.Unknown -> {
+                        event.channel.sendMessage("これの再生の仕方がわからないわ...").queue()
+                    }
+                }
             }
+        }
+    }
+
+    suspend fun onMessageReactionAdd(event: MessageReactionAddEvent) {
+        if (event.user?.id == event.jda.selfUser.id || event.messageId != playlistMessageID) return
+
+        when (event.reactionEmote.name) {
+            "❌" -> {
+                player.clearPlaylist()
+                playlistMessageID = null
+            }
+            "🔁" -> player.setPlaylistRepeat(true)
+            "🔀" -> player.setPlaylistRandom(true)
+        }
+    }
+
+    suspend fun onMessageReactionRemove(event: MessageReactionRemoveEvent) {
+        when(event.reactionEmote.name) {
+            "🔁" -> player.setPlaylistRepeat(false)
+            "🔀" -> player.setPlaylistRandom(false)
         }
     }
 }
