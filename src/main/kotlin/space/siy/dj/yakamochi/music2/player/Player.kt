@@ -13,6 +13,7 @@ import space.siy.dj.yakamochi.music2.track.*
  */
 @ExperimentalStdlibApi
 abstract class Player<T : AudioProvider>(val guildID: String) : AudioSendHandler {
+    var initialized = false
     protected var trackProviders = FallbackTrackProvider<T>()
     protected var trackQueue = TrackQueue<T>(guildID)
     protected var playlistTrackProvider = PlaylistTrackProvider<T>(guildID)
@@ -36,6 +37,7 @@ abstract class Player<T : AudioProvider>(val guildID: String) : AudioSendHandler
         trackProviders.add(trackQueue)
         trackQueue.loadFromHistory()
         trackProviders.add(playlistTrackProvider)
+        initialized = true
     }
 
     abstract suspend fun play()

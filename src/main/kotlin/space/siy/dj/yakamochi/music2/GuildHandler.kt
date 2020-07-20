@@ -23,7 +23,8 @@ class GuildHandler(private val guildID: String, private val djID: String) {
                 val channel = event.member?.voiceState?.channel ?: return
                 event.guild.audioManager.run {
                     sendingHandler = player.apply {
-                        init()
+                        if (!player.initialized)
+                            init()
                         play()
                     }
                     openAudioConnection(channel)
