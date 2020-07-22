@@ -82,7 +82,7 @@ class Youtube : MusicService {
             parameter("id", videoID)
         }.items.first()
         return@withContext VideoInfoImpl(
-                "https://www.youtube.com/watch?v=$id",
+                "https://www.youtube.com/watch?v=$videoID",
                 res.snippet.title,
                 res.contentDetails.duration.toSec().toFloat(),
                 res.snippet.thumbnails.entries.last().value.url

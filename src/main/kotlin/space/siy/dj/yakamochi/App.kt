@@ -1,5 +1,6 @@
 package space.siy.dj.yakamochi
 
+import io.ktor.util.KtorExperimentalAPI
 import net.dv8tion.jda.api.JDABuilder
 import org.bytedeco.javacv.FFmpegLogCallback
 import org.jetbrains.exposed.sql.Database
@@ -8,8 +9,6 @@ import org.koin.dsl.module
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import space.siy.dj.yakamochi.database.*
-
-import io.ktor.util.KtorExperimentalAPI
 
 val repositoryModule = module {
     single { ExposedTrackHistoryRepository() as TrackHistoryRepository }
