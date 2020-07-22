@@ -10,14 +10,15 @@ import io.ktor.client.features.logging.DEFAULT
 import io.ktor.client.features.logging.LogLevel
 import io.ktor.client.features.logging.Logger
 import io.ktor.client.features.logging.Logging
-import io.ktor.client.request.get
-import io.ktor.client.request.headers
-import io.ktor.client.request.parameter
-import io.ktor.client.request.url
+import io.ktor.client.request.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.koin.core.KoinComponent
+import org.koin.core.inject
+import space.siy.dj.yakamochi.auth.AuthType
+import space.siy.dj.yakamochi.database.AuthProvider
+import space.siy.dj.yakamochi.database.AuthRepository
 import space.siy.dj.yakamochi.music2.VideoInfo
-import space.siy.dj.yakamochi.music2.VideoSourceInfo
 import space.siy.dj.yakamochi.music2.VideoSourceInfoImpl
 import space.siy.dj.yakamochi.music2.remote.RemoteAudioProvider
 import space.siy.dj.yakamochi.music2.remote.YoutubeDLFFmpegRemoteAudioProvider
@@ -25,7 +26,9 @@ import space.siy.dj.yakamochi.music2.remote.YoutubeDLFFmpegRemoteAudioProvider
 /**
  * @author SIY1121
  */
-class Youtube : MusicService {
+class Youtube : MusicService, KoinComponent {
+    val authRepository: AuthRepository by inject()
+    override val authType = AuthType.Google
     override val id = "youtube"
 
     override fun canHandle(url: String) = url.contains(Regex("^https:\\/\\/(youtu\\.be|www\\.youtube\\.com)"))
@@ -68,6 +71,16 @@ class Youtube : MusicService {
         }
         defaultRequest {
             parameter("key", API_KEY)
+        }
+    }
+
+    private val userClient = HttpClient(CIO) {
+        install(JsonFeature) {
+            serializer = GsonSerializer()
+        }
+        install(Logging) {
+            logger = Logger.DEFAULT
+            level = LogLevel.HEADERS
         }
     }
 
@@ -127,8 +140,14 @@ class Youtube : MusicService {
         return@withContext res
     }
 
-    override suspend fun like(id: String, accessToken: String) {
-        TODO("Not yet implemented")
+    override suspend fun like(url: String, userID: String) {
+        val auth = authRepository.find(userID, AuthProvider.Google)
+                ?: throw MusicServiceManager.NotAuthorizedError(authType)
+        userClient.post<String>("https://www.googleapis.com/youtube/v3/videos/rate") {
+            header("Authorization", "Bearer ${auth.accessToken}")
+            parameter("id", url.youtubeVideoID())
+            parameter("rating", "like")
+        }
     }
 
     private fun String.toSec() = Regex("PT((\\d*?)M)?((\\d*?)S)?").find(this)?.run {

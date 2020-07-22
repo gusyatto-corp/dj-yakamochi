@@ -29,10 +29,7 @@ class EventHandler : ListenerAdapter(), KoinComponent {
         receiverScope.launch {
             if (event.author.id == event.jda.selfUser.id) return@launch
             event.checkDB()
-            if (!event.channelType.isGuild) {
-//                PrivateHandler.onMessageReceived(event)
-                return@launch
-            }
+            if (!event.channelType.isGuild) return@launch
 
             if (!event.message.isMentioned(event.jda.selfUser)) return@launch
             if (guildHandlers[event.guild.id] == null) {

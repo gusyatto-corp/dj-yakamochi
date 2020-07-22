@@ -3,6 +3,7 @@ package space.siy.dj.yakamochi.music_service
 import com.sapher.youtubedl.YoutubeDL
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import space.siy.dj.yakamochi.auth.AuthType
 import space.siy.dj.yakamochi.music2.VideoInfo
 import space.siy.dj.yakamochi.music2.VideoSourceInfo
 import space.siy.dj.yakamochi.music2.VideoSourceInfoImpl
@@ -14,6 +15,7 @@ import space.siy.dj.yakamochi.music2.remote.YoutubeDLFFmpegRemoteAudioProvider
  */
 class Fallback : MusicService {
     override val id = "fallback"
+    override val authType = AuthType.None
 
     data class VideoInfoImpl(override val url: String, override val title: String, override val duration: Float, override val thumbnail: String) : VideoInfo
 

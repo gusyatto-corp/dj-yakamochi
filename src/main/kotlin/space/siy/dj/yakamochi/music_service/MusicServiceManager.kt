@@ -1,5 +1,7 @@
 package space.siy.dj.yakamochi.music_service
 
+import space.siy.dj.yakamochi.auth.AuthProvider
+import space.siy.dj.yakamochi.auth.AuthType
 import space.siy.dj.yakamochi.music2.VideoInfo
 import space.siy.dj.yakamochi.music2.VideoSourceInfo
 
@@ -7,6 +9,9 @@ import space.siy.dj.yakamochi.music2.VideoSourceInfo
  * @author SIY1121
  */
 object MusicServiceManager : MusicService {
+    class NotAuthorizedError(val authType: AuthType): Exception()
+
+    override val authType = AuthType.None
     override val id: String = "manager"
 
     private val services = listOf(Youtube(), Fallback())
@@ -28,7 +33,5 @@ object MusicServiceManager : MusicService {
     override suspend fun playlist(url: String, accessToken: String?) = getSupportedService(url)?.playlist(url)
             ?: emptyList()
 
-    override suspend fun like(id: String, accessToken: String) {
-        TODO("Not yet implemented")
-    }
+    override suspend fun like(url: String, userID: String) = getSupportedService(url)?.like(url, userID) ?: Unit
 }

@@ -1,7 +1,7 @@
 package space.siy.dj.yakamochi.music_service
 
+import space.siy.dj.yakamochi.auth.AuthType
 import space.siy.dj.yakamochi.music2.VideoInfo
-import space.siy.dj.yakamochi.music2.VideoSourceInfo
 import space.siy.dj.yakamochi.music2.remote.RemoteAudioProvider
 
 /**
@@ -12,6 +12,7 @@ interface MusicService {
         Video, Playlist, Unknown
     }
     val id: String
+    val authType: AuthType
 
     fun canHandle(url: String): Boolean
     fun resourceType(url: String): ResourceType
@@ -19,5 +20,5 @@ interface MusicService {
     suspend fun detail(url: String): VideoInfo?
     suspend fun source(url: String): RemoteAudioProvider?
     suspend fun playlist(url: String, accessToken: String? = null): List<VideoInfo>
-    suspend fun like(url: String, accessToken: String)
+    suspend fun like(url: String, userID: String)
 }

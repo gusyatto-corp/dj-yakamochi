@@ -1,8 +1,13 @@
 package space.siy.dj.yakamochi.music2
 
+import kotlinx.coroutines.runBlocking
+import net.dv8tion.jda.api.MessageBuilder
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent
 import net.dv8tion.jda.api.events.message.react.MessageReactionRemoveEvent
+import org.koin.core.KoinComponent
+import org.koin.core.inject
+import space.siy.dj.yakamochi.auth.AuthProvider
 import space.siy.dj.yakamochi.music2.player.DJPlayer
 import space.siy.dj.yakamochi.music_service.MusicService
 import space.siy.dj.yakamochi.music_service.MusicServiceManager
@@ -11,7 +16,8 @@ import space.siy.dj.yakamochi.music_service.MusicServiceManager
  * @author SIY1121
  */
 @ExperimentalStdlibApi
-class GuildHandler(private val guildID: String, private val djID: String) {
+class GuildHandler(private val guildID: String, private val djID: String) : KoinComponent {
+    private val authProvider: AuthProvider by inject()
     private val player = DJPlayer(guildID)
     private var playlistMessageID: String? = null
 
@@ -38,6 +44,32 @@ class GuildHandler(private val guildID: String, private val djID: String) {
             }
             rawMsg.contains("enable history fallback") -> player.setHistoryFallback(true)
             rawMsg.contains("disable history fallback") -> player.setHistoryFallback(false)
+            rawMsg.contains(Regex("(好き|すき)")) -> {
+                val videoInfo = player.videoInfo ?: return
+                try {
+                    MusicServiceManager.like(videoInfo.url, event.author.id)
+                    event.message.addReaction("👍").queue()
+                } catch (e: NotImplementedError) {
+                    event.channel.sendMessage(MessageBuilder()
+                            .append("<@${event.author.id}>")
+                            .append("このサービスはまだ連携できないから自分でお気に入り登録してちょうだい\n")
+                            .append(videoInfo.url)
+                            .build()
+                    ).queue()
+                } catch (e: MusicServiceManager.NotAuthorizedError) {
+                    event.channel.sendMessage(MessageBuilder()
+                            .append("<@${event.author.id}>")
+                            .append("あんたの代わりにお気に入りに登録するには${e.authType}のログインが必要よ！\nDMを見てちょうだい")
+                            .build()
+                    ).queue()
+                    val privateChannel = event.author.openPrivateChannel().complete()
+                    privateChannel.sendMessage(authProvider.requestAuth(event.author.id, e.authType) {
+                        runBlocking { MusicServiceManager.like(videoInfo.url, event.author.id) }
+                        privateChannel.sendMessage("ログイン完了よ！").queue()
+                        event.message.addReaction("👍").queue()
+                    }).queue()
+                }
+            }
             else -> {
                 val url = rawMsg.matchUrl() ?: return
                 when (MusicServiceManager.resourceType(url)) {
