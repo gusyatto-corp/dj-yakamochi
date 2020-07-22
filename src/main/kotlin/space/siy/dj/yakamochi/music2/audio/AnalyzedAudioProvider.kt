@@ -26,7 +26,7 @@ class AnalyzedAudioProvider(remote: RemoteAudioProvider) : AudioProvider(remote)
     var endPos = 0
     var endFadePos = 0
 
-    val effecter = Effector()
+    val effector = Effector()
 
     override fun start() = scope.launch {
         logInfo("starting")
@@ -55,15 +55,17 @@ class AnalyzedAudioProvider(remote: RemoteAudioProvider) : AudioProvider(remote)
         endPos = sorted.findLast { it is Event.VolumeDown && it.beatOffset == 0 }?.positionInSec?.secToSampleCount()
                 ?: 0
         endFadePos = events.find { it is Event.EndPos }?.positionInSec?.secToSampleCount() ?: 0
-        effecter.scheduleEffect(FadeIn, startFadePos, startPos)
-        effecter.scheduleEffect(FadeOut, endPos, endFadePos)
+        effector.scheduleEffect(Gain(1 / res.maxVolume), startFadePos, endFadePos)
+        logInfo("adjust volume ${1 / res.maxVolume}")
+        effector.scheduleEffect(FadeIn, startFadePos, startPos)
+        effector.scheduleEffect(FadeOut, endPos, endFadePos)
 
         sorted.filter { it is Event.VolumeUp && it.beatOffset == 0 }.forEach { e ->
             val startEvent = events.find { it is Event.VolumeDown && it.beatOffset == 0 && e.positionInSec - it.positionInSec > 0 && e.positionInSec - it.positionInSec < 5 }
                     ?: return@forEach
             val end = e.positionInSec.secToSampleCount()
             val start = startEvent.positionInSec.secToSampleCount()
-            effecter.scheduleEffect(HighPass, start, end)
+            effector.scheduleEffect(HighPass, start, end)
             logInfo("HighPass filter scheduled at ${start.sampleCountToSec()}s")
         }
 
@@ -79,7 +81,7 @@ class AnalyzedAudioProvider(remote: RemoteAudioProvider) : AudioProvider(remote)
         buffer.position(position)
         var arr = ShortArray(size)
         buffer.get(arr, 0, size.coerceAtMost(endFadePos - position))
-        arr = effecter.exec(arr, position)
+        arr = effector.exec(arr, position)
         position = buffer.position()
         if (endFadePos - position == 0)
             status = Status.End

@@ -58,7 +58,7 @@ class DJPlayer(guildID: String) : Player<AnalyzedAudioProvider>(guildID) {
         }
         val pos = nowProvider.position
         var arr = nowProvider.read20Ms().toArray().map { (it * 0.5f).toShort() }.toShortArray()
-        if (nextTrack != null) {
+        if (nextTrack != null && nextTrack?.audioProvider?.canRead20Ms() == true) {
             val nextProvider = nextTrack!!.audioProvider!!
             val startCrossPos = nowProvider.endPos - (nextProvider.startPos - nextProvider.startFadePos)
             val requiredNextSample = (arr.size - (startCrossPos - pos)).coerceAtMost(0.02.secToSampleCount())

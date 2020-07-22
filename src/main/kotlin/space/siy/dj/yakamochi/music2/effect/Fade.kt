@@ -2,6 +2,7 @@ package space.siy.dj.yakamochi.music2.effect
 
 import space.siy.dj.yakamochi.music2.SAMPLE_RATE
 import uk.me.berndporr.iirj.Butterworth
+import kotlin.math.floor
 import kotlin.math.sqrt
 
 /**
@@ -32,4 +33,9 @@ object HighPass : Effector.Effect {
         val t = if (_t > 0.5f) (0.5f - _t) * 2 else _t * 2
         return Pair(filterL.filter(l.toDouble()).toShort(), filterR.filter(r.toDouble()).toShort())
     }
+}
+
+class Gain(val scale: Float) : Effector.Effect {
+    override fun exec(l: Short, r: Short, t: Float) = Pair(floor(l * scale).toShort(), floor(r * scale).toShort())
+
 }
