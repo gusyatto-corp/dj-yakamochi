@@ -26,6 +26,7 @@ import io.ktor.locations.KtorExperimentalLocationsAPI
 import io.ktor.locations.Location
 import io.ktor.locations.Locations
 import io.ktor.locations.get
+import io.ktor.request.userAgent
 import io.ktor.response.respond
 import io.ktor.response.respondRedirect
 import io.ktor.response.respondText
@@ -117,6 +118,10 @@ object AuthHandler : AuthProvider, KoinComponent {
         }
         routing {
             get<Login> { p ->
+                if (call.request.userAgent()?.contains("Discordbot") == true) {
+                    call.respond(HttpStatusCode.Forbidden)
+                    return@get
+                }
                 val userID = onetimeToken.entries.find { it.value == p.token }?.key
                 if (userID == null) {
                     call.respond(HttpStatusCode.BadRequest, "このUrlは１回クリックしたら使えなくなるわよ！")
