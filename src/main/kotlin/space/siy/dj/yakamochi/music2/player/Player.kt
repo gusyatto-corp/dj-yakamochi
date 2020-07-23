@@ -1,5 +1,6 @@
 package space.siy.dj.yakamochi.music2.player
 
+import kotlinx.coroutines.coroutineScope
 import net.dv8tion.jda.api.audio.AudioSendHandler
 import space.siy.dj.yakamochi.database.TrackHistoryRepository
 import space.siy.dj.yakamochi.music2.VideoInfo
@@ -49,12 +50,20 @@ abstract class Player<T : AudioProvider>(val guildID: String) : AudioSendHandler
         doneCallbackMap.remove(track.trackID)?.invoke()
     }
 
-    suspend fun queue(url: String, author: String, guild: String, doneCallback: (() -> Unit)? = null) {
-        val track = trackQueue.queue(url, author, guild)
-        if (doneCallback != null)
-            doneCallbackMap[track.trackID] = doneCallback
-        play()
-    }
+    suspend fun queue(url: String, author: String, guild: String, doneCallback: (() -> Unit)? = null) =
+            try {
+                coroutineScope {
+                    val track = trackQueue.queue(url, author, guild)
+                    if (doneCallback != null)
+                        doneCallbackMap[track.trackID] = doneCallback
+                    play()
+                }
+                true
+            } catch (e: Exception) {
+                e.printStackTrace()
+                false
+            }
+
 
     suspend fun setPlaylist(url: String, author: String, doneCallback: (() -> Unit)? = null) {
         playlistTrackProvider.setPlaylist(url, author, doneCallback)

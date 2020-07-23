@@ -74,11 +74,11 @@ class GuildHandler(private val guildID: String, private val djID: String) : Koin
                 val url = rawMsg.matchUrl() ?: return
                 when (MusicServiceManager.resourceType(url)) {
                     MusicService.ResourceType.Video -> {
-                        player.queue(url, event.author.id, guildID) {
+                        val success = player.queue(url, event.author.id, guildID) {
                             event.message.clearReactions().complete()
                             event.message.addReaction("✅").queue()
                         }
-                        event.message.addReaction("🎵").queue()
+                        event.message.addReaction(if (success) "🎵" else "❌").queue()
                     }
                     MusicService.ResourceType.Playlist -> {
                         player.setPlaylist(url, event.author.id) {
