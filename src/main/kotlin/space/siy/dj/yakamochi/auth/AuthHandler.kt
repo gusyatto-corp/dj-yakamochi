@@ -73,6 +73,7 @@ object AuthHandler : AuthProvider, KoinComponent {
             requestMethod = HttpMethod.Post,
             authorizeUrlInterceptor = {
                 parameters.append("access_type", "offline")
+                parameters.append("prompt", "consent")
             },
             clientId = System.getenv("GOOGLE_CLIENT_ID"),
             clientSecret = System.getenv("GOOGLE_CLIENT_SECRET"),
