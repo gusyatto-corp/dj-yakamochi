@@ -129,7 +129,7 @@ object AuthHandler : AuthProvider, KoinComponent {
                     return@get
                 }
                 onetimeToken.remove(userID)
-                call.response.cookies.append(Cookie("jwt", createJWT(userID), path = "/", secure = baseUrl.startsWith("https://"), httpOnly = true))
+                call.response.cookies.append(Cookie("jwt", createJWT(userID), path = "/", httpOnly = true))
                 when (AuthType.valueOf(p.next)) {
                     AuthType.Self -> {
                         call.respondRedirect("/secret")
