@@ -31,6 +31,10 @@ class ExposedAuthRepository : AuthRepository {
         }.limit(1).firstOrNull()?.transform()
     }
 
+    override fun find(provider: AuthProvider) = transaction {
+        AuthDAO.find { AuthTable.provider eq provider.toString() }.map { it.transform() }
+    }
+
     override fun delete(userID: String, provider: AuthProvider) = transaction {
         AuthDAO.find { (AuthTable.userID eq userID) and (AuthTable.provider eq provider.toString()) }.forEach { it.delete() }
     }

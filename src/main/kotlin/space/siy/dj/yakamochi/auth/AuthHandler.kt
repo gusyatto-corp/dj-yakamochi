@@ -10,10 +10,17 @@ import io.ktor.auth.*
 import io.ktor.auth.jwt.JWTPrincipal
 import io.ktor.auth.jwt.jwt
 import io.ktor.client.HttpClient
-import io.ktor.http.ContentType
-import io.ktor.http.Cookie
-import io.ktor.http.HttpMethod
-import io.ktor.http.HttpStatusCode
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.features.json.GsonSerializer
+import io.ktor.client.features.json.JsonFeature
+import io.ktor.client.features.logging.DEFAULT
+import io.ktor.client.features.logging.LogLevel
+import io.ktor.client.features.logging.Logging
+import io.ktor.client.request.forms.FormDataContent
+import io.ktor.client.request.forms.formData
+import io.ktor.client.request.forms.submitForm
+import io.ktor.client.request.post
+import io.ktor.http.*
 import io.ktor.http.auth.HttpAuthHeader
 import io.ktor.locations.KtorExperimentalLocationsAPI
 import io.ktor.locations.Location
@@ -22,19 +29,25 @@ import io.ktor.locations.get
 import io.ktor.response.respond
 import io.ktor.response.respondRedirect
 import io.ktor.response.respondText
+import io.ktor.routing.contentType
 import io.ktor.routing.get
 import io.ktor.routing.route
 import io.ktor.routing.routing
 import io.ktor.thymeleaf.Thymeleaf
 import io.ktor.thymeleaf.ThymeleafContent
 import io.ktor.util.KtorExperimentalAPI
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import org.koin.core.KoinComponent
 import org.koin.core.inject
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver
 import space.siy.dj.yakamochi.database.Auth
 import space.siy.dj.yakamochi.database.AuthRepository
+import space.siy.dj.yakamochi.logger
 import java.util.*
 import kotlin.collections.HashMap
+import kotlin.concurrent.scheduleAtFixedRate
 
 /**
  * @author SIY1121
@@ -136,6 +149,37 @@ object AuthHandler : AuthProvider, KoinComponent {
                         doneCallback.remove(jwt.subject)?.invoke()
                     }
                 }
+            }
+
+            // TODO 直書きやめる
+            Timer().scheduleAtFixedRate(0, 30 * 60 * 1000) {
+                logger().info("Start Refresh Token Operation")
+                val client = HttpClient(CIO) {
+                    install(JsonFeature) {
+                        serializer = GsonSerializer()
+                    }
+                    install(Logging) {
+                        logger = io.ktor.client.features.logging.Logger.DEFAULT
+                        level = LogLevel.HEADERS
+                    }
+                }
+                GlobalScope.launch(Dispatchers.IO) {
+                    authRepository.find(space.siy.dj.yakamochi.database.AuthProvider.Google).forEach {
+                        val res = client.post<Map<String, String>>("https://www.googleapis.com/oauth2/v3/token") {
+                            body = FormDataContent(Parameters.build {
+                                append("refresh_token", it.refreshToken)
+                                append("client_id", googleOauthProvider.clientId)
+                                append("client_secret", googleOauthProvider.clientSecret)
+                                append("redirect_uri", "$baseUrl/auth/google")
+                                append("grant_type", "refresh_token")
+                            })
+                        }
+                        val newAccessToken = res["access_token"] ?: throw Exception("AccessTokenが取得できませんでした")
+                        authRepository.upsert(Auth(it.userID, it.provider, newAccessToken, it.refreshToken))
+                        logger().info("Token Refreshed: ${it.userID}")
+                    }
+                }
+
             }
         }
     }
