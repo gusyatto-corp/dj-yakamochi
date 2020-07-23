@@ -98,11 +98,11 @@ object AuthHandler : AuthProvider, KoinComponent {
                     HttpAuthHeader.Single("bearer", jwt)
                 }
                 validate { credential ->
-                    if (credential.payload.audience.contains("audience")) JWTPrincipal(credential.payload) else null
+                    if (credential.payload.audience.contains(audience) && credential.payload.subject == "access_token") JWTPrincipal(credential.payload) else null
                 }
             }
             oauth("google-oauth") {
-                client = HttpClient(io.ktor.client.engine.cio.CIO)
+                client = HttpClient(CIO)
                 providerLookup = { googleOauthProvider }
                 urlProvider = {
                     "$baseUrl/auth/google"
@@ -140,7 +140,7 @@ object AuthHandler : AuthProvider, KoinComponent {
             }
             authenticate("jwt") {
                 get("/secret") {
-                    call.respondText { call.principal<JWTPrincipal>()?.payload?.subject ?: "" }
+                    call.respondText { call.principal<JWTPrincipal>()?.payload?.getClaim("userID")?.asString() ?: "" }
                 }
             }
             authenticate("google-oauth") {
@@ -150,9 +150,10 @@ object AuthHandler : AuthProvider, KoinComponent {
                                 ?: error("No principal")
                         val jwt = jwtVerifier.verify(call.request.cookies["jwt"]
                                 ?: throw Exception("JWT not found"))
-                        authRepository.upsert(Auth(jwt.subject, space.siy.dj.yakamochi.database.AuthProvider.Google, oauthPrincipal.accessToken, oauthPrincipal.refreshToken!!))
+                        val userID = jwt.getClaim("userID").asString()
+                        authRepository.upsert(Auth(userID, space.siy.dj.yakamochi.database.AuthProvider.Google, oauthPrincipal.accessToken, oauthPrincipal.refreshToken!!))
                         call.respond(ThymeleafContent("simple-message", mapOf("msg" to "ログイン完了よ！")))
-                        doneCallback.remove(jwt.subject)?.invoke()
+                        doneCallback.remove(userID)?.invoke()
                     }
                 }
             }
@@ -190,19 +191,23 @@ object AuthHandler : AuthProvider, KoinComponent {
         }
     }
 
+    private val issuer = System.getenv("JWT_ISSUER")
+    private val audience = System.getenv("JWT_AUDIENCE")
+
     private val algorithm = Algorithm.HMAC256(System.getenv("JWT_SECRET"))
 
     private val jwtVerifier = JWT
             .require(algorithm)
-            .withAudience("audience")
-            .withIssuer("issuer")
+            .withAudience(audience)
+            .withIssuer(issuer)
             .build()
 
     private fun createJWT(userID: String) =
             JWT.create()
-                    .withIssuer("issuer")
-                    .withAudience("audience")
-                    .withSubject(userID)
+                    .withIssuer(audience)
+                    .withAudience(issuer)
+                    .withSubject("access_token")
+                    .withClaim("userID", userID)
                     .sign(algorithm)
 
     override fun requestAuth(userID: String, type: AuthType, done: (() -> Unit)?): String {
