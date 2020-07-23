@@ -42,9 +42,9 @@ class GuildHandler(private val guildID: String, private val djID: String) : Koin
             rawMsg.matches(Regex("[\\s\\S]*?([ばバ][\\s\\S]*?[いイ][\\s\\S]*?){2}[\\s\\S]*?")) -> {
                 event.guild.audioManager.closeAudioConnection()
             }
-            rawMsg.contains("enable history fallback") -> player.setHistoryFallback(true)
-            rawMsg.contains("disable history fallback") -> player.setHistoryFallback(false)
-            rawMsg.contains(Regex("(好き|すき)")) -> {
+            rawMsg.contains("おまかせ") -> player.setHistoryFallback(true)
+            rawMsg.contains("おまかせおわり") -> player.setHistoryFallback(false)
+            rawMsg.contains(Regex("(好き|すき|すこ)")) -> {
                 val videoInfo = player.videoInfo ?: return
                 try {
                     MusicServiceManager.like(videoInfo.url, event.author.id)
