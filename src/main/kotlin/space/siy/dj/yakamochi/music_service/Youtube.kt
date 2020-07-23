@@ -93,7 +93,7 @@ class Youtube : MusicService, KoinComponent {
         val res = client.get<YoutubePagerResponse<VideoResource>>("https://www.googleapis.com/youtube/v3/videos") {
             parameter("part", "id,snippet,contentDetails")
             parameter("id", videoID)
-        }.items.first()
+        }.items.firstOrNull() ?: return@withContext null
         return@withContext VideoInfoImpl(
                 "https://www.youtube.com/watch?v=$videoID",
                 res.snippet.title,
