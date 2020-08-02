@@ -154,7 +154,9 @@ class Youtube : MusicService, KoinComponent {
         ((groupValues[2].toIntOrNull() ?: 0) * 60) + (groupValues[4].toIntOrNull() ?: 0)
     } ?: 0
 
-    private fun String.youtubeVideoID() = Regex("[?&]v=(.*?)(?=(\$|&))").find(this)?.groupValues?.get(1)
+    private fun String.youtubeVideoID() =
+            Regex("[?&]v=(.*?)(?=(\$|&))").find(this)?.groupValues?.get(1)
+                    ?: Regex("youtu\\.be\\/(.*?)\$").find(this)?.groupValues?.get(1)
 
-    private fun String.matchYoutubePlaylistID() = Regex("[?&]list=(.*?)(?=(\$|&))").find(this)?.groupValues?.get(1)
+    private fun String.matchYoutubePlaylistID() = Regex("playlist\\?list=(.*?)(?=(\$|&))").find(this)?.groupValues?.get(1)
 }
