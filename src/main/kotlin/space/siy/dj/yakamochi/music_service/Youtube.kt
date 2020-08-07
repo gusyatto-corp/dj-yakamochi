@@ -131,7 +131,7 @@ class Youtube : MusicService, KoinComponent {
                         "https://www.youtube.com/watch?v=${it.snippet.resourceId.videoId}",
                         it.snippet.title,
                         -1f,
-                        it.snippet.thumbnails.entries.last().value.url
+                        it.snippet.thumbnails.entries.lastOrNull()?.value?.url ?: ""
                 )
             })
             if (r.nextPageToken == null) break
