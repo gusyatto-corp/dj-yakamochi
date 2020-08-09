@@ -1,4 +1,4 @@
-package space.siy.dj.yakamochi.music_service
+package space.siy.dj.yakamochi.music.service
 
 import space.siy.dj.yakamochi.Outcome
 import space.siy.dj.yakamochi.auth.AuthType

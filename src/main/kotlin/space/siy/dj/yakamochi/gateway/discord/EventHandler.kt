@@ -1,4 +1,4 @@
-package space.siy.dj.yakamochi.music
+package space.siy.dj.yakamochi.gateway.discord
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

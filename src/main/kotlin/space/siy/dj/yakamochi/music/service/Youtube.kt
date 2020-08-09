@@ -1,4 +1,4 @@
-package space.siy.dj.yakamochi.music_service
+package space.siy.dj.yakamochi.music.service
 
 import com.sapher.youtubedl.YoutubeDL
 import com.sapher.youtubedl.YoutubeDLException

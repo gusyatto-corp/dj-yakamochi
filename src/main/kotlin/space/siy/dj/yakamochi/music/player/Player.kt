@@ -8,7 +8,7 @@ import space.siy.dj.yakamochi.music.audio.AudioProvider
 import space.siy.dj.yakamochi.music.sampleCountToSec
 import space.siy.dj.yakamochi.music.secToSampleCount
 import space.siy.dj.yakamochi.music.track.*
-import space.siy.dj.yakamochi.music_service.MusicService
+import space.siy.dj.yakamochi.music.service.MusicService
 import space.siy.dj.yakamochi.stackTraceString
 
 /**

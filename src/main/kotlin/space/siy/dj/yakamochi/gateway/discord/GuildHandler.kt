@@ -1,4 +1,4 @@
-package space.siy.dj.yakamochi.music
+package space.siy.dj.yakamochi.gateway.discord
 
 import kotlinx.coroutines.runBlocking
 import net.dv8tion.jda.api.MessageBuilder
@@ -12,8 +12,8 @@ import space.siy.dj.yakamochi.Outcome
 import space.siy.dj.yakamochi.auth.AuthProvider
 import space.siy.dj.yakamochi.music.player.DJPlayer
 import space.siy.dj.yakamochi.music.player.Player
-import space.siy.dj.yakamochi.music_service.MusicService
-import space.siy.dj.yakamochi.music_service.MusicServiceManager
+import space.siy.dj.yakamochi.music.service.MusicService
+import space.siy.dj.yakamochi.music.service.MusicServiceManager
 import space.siy.dj.yakamochi.stackTraceString
 
 /**

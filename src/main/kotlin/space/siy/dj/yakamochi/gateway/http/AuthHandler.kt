@@ -1,7 +1,6 @@
-package space.siy.dj.yakamochi.auth
+package space.siy.dj.yakamochi.gateway.http
 
 import com.auth0.jwt.JWT
-import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.application.Application
 import io.ktor.application.call
@@ -17,8 +16,6 @@ import io.ktor.client.features.logging.DEFAULT
 import io.ktor.client.features.logging.LogLevel
 import io.ktor.client.features.logging.Logging
 import io.ktor.client.request.forms.FormDataContent
-import io.ktor.client.request.forms.formData
-import io.ktor.client.request.forms.submitForm
 import io.ktor.client.request.post
 import io.ktor.http.*
 import io.ktor.http.auth.HttpAuthHeader
@@ -30,7 +27,6 @@ import io.ktor.request.userAgent
 import io.ktor.response.respond
 import io.ktor.response.respondRedirect
 import io.ktor.response.respondText
-import io.ktor.routing.contentType
 import io.ktor.routing.get
 import io.ktor.routing.route
 import io.ktor.routing.routing
@@ -43,6 +39,8 @@ import kotlinx.coroutines.launch
 import org.koin.core.KoinComponent
 import org.koin.core.inject
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver
+import space.siy.dj.yakamochi.auth.AuthProvider
+import space.siy.dj.yakamochi.auth.AuthType
 import space.siy.dj.yakamochi.database.Auth
 import space.siy.dj.yakamochi.database.AuthRepository
 import space.siy.dj.yakamochi.logger

@@ -8,7 +8,7 @@ import space.siy.dj.yakamochi.Outcome
 import space.siy.dj.yakamochi.database.TrackHistoryRepository
 import space.siy.dj.yakamochi.music.audio.AudioProvider
 import space.siy.dj.yakamochi.music.remote.RemoteAudioProvider
-import space.siy.dj.yakamochi.music_service.MusicService
+import space.siy.dj.yakamochi.music.service.MusicService
 
 /**
  * @author SIY1121
