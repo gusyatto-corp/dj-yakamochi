@@ -1,7 +1,7 @@
 package space.siy.dj.yakamochi.database
 
 import org.joda.time.DateTime
-import space.siy.dj.yakamochi.music2.VideoInfo
+import space.siy.dj.yakamochi.music.VideoInfo
 
 /**
  * @author SIY1121

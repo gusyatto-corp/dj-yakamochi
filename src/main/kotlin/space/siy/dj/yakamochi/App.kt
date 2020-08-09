@@ -37,7 +37,7 @@ fun main(args: Array<String>) {
     Database.connect("jdbc:postgresql://${System.getenv("DB_HOST")}:${System.getenv("DB_PORT")}/${System.getenv("DB_NAME")}", driver = "org.postgresql.Driver",
             user = System.getenv("DB_USER"), password = System.getenv("DB_PASSWORD"))
     val jda = JDABuilder.createDefault(System.getenv("token")).build()
-    jda.addEventListener(space.siy.dj.yakamochi.music2.EventHandler())
+    jda.addEventListener(space.siy.dj.yakamochi.music.EventHandler())
 //    jda.addEventListener(DMHandler())
 }
 

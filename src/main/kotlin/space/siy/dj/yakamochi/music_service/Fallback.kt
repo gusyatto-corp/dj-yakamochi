@@ -6,11 +6,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import space.siy.dj.yakamochi.Outcome
 import space.siy.dj.yakamochi.auth.AuthType
-import space.siy.dj.yakamochi.music2.VideoInfo
-import space.siy.dj.yakamochi.music2.VideoSourceInfo
-import space.siy.dj.yakamochi.music2.VideoSourceInfoImpl
-import space.siy.dj.yakamochi.music2.remote.RemoteAudioProvider
-import space.siy.dj.yakamochi.music2.remote.YoutubeDLFFmpegRemoteAudioProvider
+import space.siy.dj.yakamochi.music.VideoInfo
+import space.siy.dj.yakamochi.music.VideoSourceInfoImpl
+import space.siy.dj.yakamochi.music.remote.RemoteAudioProvider
+import space.siy.dj.yakamochi.music.remote.YoutubeDLFFmpegRemoteAudioProvider
 
 /**
  * @author SIY1121

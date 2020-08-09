@@ -2,8 +2,8 @@ package space.siy.dj.yakamochi.music_service
 
 import space.siy.dj.yakamochi.Outcome
 import space.siy.dj.yakamochi.auth.AuthType
-import space.siy.dj.yakamochi.music2.VideoInfo
-import space.siy.dj.yakamochi.music2.remote.RemoteAudioProvider
+import space.siy.dj.yakamochi.music.VideoInfo
+import space.siy.dj.yakamochi.music.remote.RemoteAudioProvider
 
 /**
  * @author SIY1121
