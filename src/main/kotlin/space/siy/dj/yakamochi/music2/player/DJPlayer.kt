@@ -3,6 +3,7 @@ package space.siy.dj.yakamochi.music2.player
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import space.siy.dj.yakamochi.Outcome
 import space.siy.dj.yakamochi.music2.VideoInfo
 import space.siy.dj.yakamochi.music2.audio.AnalyzedAudioProvider
 import space.siy.dj.yakamochi.music2.audio.AudioProvider
@@ -10,6 +11,7 @@ import space.siy.dj.yakamochi.music2.audio.QueueAudioProvider
 import space.siy.dj.yakamochi.music2.secToSampleCount
 import space.siy.dj.yakamochi.music2.toArray
 import space.siy.dj.yakamochi.music2.track.Track
+import space.siy.dj.yakamochi.music2.track.TrackProvider
 import java.nio.ByteBuffer
 
 /**
@@ -31,7 +33,8 @@ class DJPlayer(guildID: String) : Player<AnalyzedAudioProvider>(guildID) {
     var requestedNext = false
 
     override suspend fun play() {
-        if (nowPlayingTrack == null) nowPlayingTrack = trackProviders.requestTrack()
+        if (nowPlayingTrack == null)
+            nowPlayingTrack = requestTrack() ?: return
         status = Status.Play
     }
 
@@ -43,16 +46,16 @@ class DJPlayer(guildID: String) : Player<AnalyzedAudioProvider>(guildID) {
         val tmp = nowPlayingTrack ?: return
         nowPlayingTrack = null
         doneTrack(tmp)
-        nowPlayingTrack = trackProviders.requestTrack()
+        nowPlayingTrack = requestTrack() ?: return
     }
 
     override fun provide20MsAudio(): ByteBuffer = runBlocking {
         val buf = ByteBuffer.allocate(0.02f.secToSampleCount() * Short.SIZE_BYTES)
         val nowProvider = nowPlayingTrack?.audioProvider ?: return@runBlocking buf
-        if (nowProvider.endPos - nowProvider.position < 20.secToSampleCount() && nextTrack == null && !requestedNext) {
+        if (nowProvider.endPos - nowProvider.position < 20.secToSampleCount() && nextTrack == null && !requestedNext && trackProviders.canProvide()) {
             requestedNext = true
             GlobalScope.launch {
-                nextTrack = trackProviders.requestTrack()
+                nextTrack = requestTrack()
                 requestedNext = false
             }
         }

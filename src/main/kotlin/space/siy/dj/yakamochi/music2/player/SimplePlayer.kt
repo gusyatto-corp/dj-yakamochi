@@ -1,6 +1,7 @@
 package space.siy.dj.yakamochi.music2.player
 
 import kotlinx.coroutines.runBlocking
+import space.siy.dj.yakamochi.Outcome
 import space.siy.dj.yakamochi.music2.VideoInfo
 import space.siy.dj.yakamochi.music2.audio.AudioProvider
 import space.siy.dj.yakamochi.music2.audio.QueueAudioProvider
@@ -23,7 +24,7 @@ class SimplePlayer(guildID: String) : Player<AudioProvider>(guildID) {
     }
 
     override suspend fun play() {
-        if (nowPlayingTrack == null) nowPlayingTrack = trackProviders.requestTrack()
+        if (nowPlayingTrack == null) nowPlayingTrack = requestTrack() ?: return
         status = Player.Status.Play
     }
 
@@ -32,7 +33,7 @@ class SimplePlayer(guildID: String) : Player<AudioProvider>(guildID) {
     }
 
     override suspend fun skip() {
-        nowPlayingTrack = trackProviders.requestTrack()
+        nowPlayingTrack = requestTrack()
     }
 
     override fun provide20MsAudio(): ByteBuffer? = runBlocking {
@@ -40,7 +41,7 @@ class SimplePlayer(guildID: String) : Player<AudioProvider>(guildID) {
         buf.asShortBuffer().put(nowPlayingTrack?.audioProvider?.read20Ms())
         if (nowPlayingTrack?.audioProvider?.status == AudioProvider.Status.End) {
             doneTrack(nowPlayingTrack!!)
-            nowPlayingTrack = trackProviders.requestTrack()
+            nowPlayingTrack = requestTrack()
         }
         return@runBlocking buf
     }
