@@ -37,5 +37,4 @@ object HighPass : Effector.Effect {
 
 class Gain(val scale: Float) : Effector.Effect {
     override fun exec(l: Short, r: Short, t: Float) = Pair(floor(l * scale).toShort(), floor(r * scale).toShort())
-
 }

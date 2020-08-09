@@ -9,8 +9,14 @@ import java.nio.ShortBuffer
 const val SAMPLE_RATE = 48000
 const val CHANNEL_COUNT = 2
 
+/**
+ * 秒数をサンプル数に変換する
+ */
 fun Number.secToSampleCount() = (this.toFloat() * SAMPLE_RATE * CHANNEL_COUNT).toInt()
 
+/**
+ * サンプル数から秒数に変換する
+ */
 fun Number.sampleCountToSec() = (this.toFloat() / SAMPLE_RATE / CHANNEL_COUNT)
 
 fun ShortBuffer.toArray(size: Int = -1): ShortArray {

@@ -1,13 +1,14 @@
 package space.siy.dj.yakamochi.music_service
 
 import space.siy.dj.yakamochi.Outcome
-import space.siy.dj.yakamochi.auth.AuthProvider
 import space.siy.dj.yakamochi.auth.AuthType
-import space.siy.dj.yakamochi.music2.VideoInfo
-import space.siy.dj.yakamochi.music2.VideoSourceInfo
 
 /**
  * @author SIY1121
+ */
+
+/**
+ * 処理を適切なMusicServiceに振り分ける
  */
 object MusicServiceManager : MusicService {
     class NotAuthorizedError(val authType: AuthType) : Exception()

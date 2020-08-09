@@ -11,6 +11,10 @@ import java.nio.ByteBuffer
 /**
  * @author SIY1121
  */
+
+/**
+ * シンプルなプレイヤー実装
+ */
 @ExperimentalStdlibApi
 class SimplePlayer(guildID: String) : Player<AudioProvider>(guildID) {
     override var status: Status = Status.Stop
@@ -39,6 +43,8 @@ class SimplePlayer(guildID: String) : Player<AudioProvider>(guildID) {
     override fun provide20MsAudio(): ByteBuffer? = runBlocking {
         val buf = ByteBuffer.allocate(0.02f.secToSampleCount() * Short.SIZE_BYTES)
         buf.asShortBuffer().put(nowPlayingTrack?.audioProvider?.read20Ms())
+
+        // 曲が終了したら次の曲をリクエストする
         if (nowPlayingTrack?.audioProvider?.status == AudioProvider.Status.End) {
             doneTrack(nowPlayingTrack!!)
             nowPlayingTrack = requestTrack()

@@ -14,6 +14,10 @@ import kotlin.math.abs
 /**
  * @author SIY1121
  */
+
+/**
+ * 曲の頭と最後の無音を取り除いた音源を提供する
+ */
 class QueueGaplessAudioProvider(remote: RemoteAudioProvider) : QueueAudioProvider(remote) {
     val threthold = 500
     var retryCount = 0
@@ -30,12 +34,13 @@ class QueueGaplessAudioProvider(remote: RemoteAudioProvider) : QueueAudioProvide
         var startGapDetected = false
         while (status == Status.Active) {
             val data = remote.read()?.toArray() ?: break
+            // 頭の無音が検出されていない場合
             if (!startGapDetected) {
                 val i = data.indexOfFirst { it > threthold }
                 if (i < 0) {
                     startGap += data.size
                     continue
-                } else {
+                } else { // 初めてしきい値を超えるサンプルが出現した場合、頭の無音区間は検出終了
                     data.sliceArray(i until data.size).run {
                         forEach { queue.put(it) }
                         putPosition += size
@@ -52,6 +57,7 @@ class QueueGaplessAudioProvider(remote: RemoteAudioProvider) : QueueAudioProvide
             }
         }
         logInfo("loading completed at the end of audio")
+        // 曲の最後までサンプルを読み込んだ際、後ろから無音区間を検出する
         val i = queue.toList().reversed().indexOfFirst { it > threthold }
         duration = putPosition - i
         logInfo("silent section has been detected at the end: ${i.sampleCountToSec()}s")

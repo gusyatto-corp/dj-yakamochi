@@ -6,6 +6,10 @@ import kotlin.math.min
 /**
  * @author SIY1121
  */
+
+/**
+ * 音源にエフェクトを掛ける
+ */
 class Effector {
     interface Effect {
         fun exec(l: Short, r: Short, t: Float): Pair<Short, Short>
@@ -15,6 +19,9 @@ class Effector {
 
     private val effects = ArrayList<EffectData>()
 
+    /**
+     * 指定された位置にエフェクトをスケジュールする
+     */
     fun scheduleEffect(effect: Effect, start: Int, end: Int) {
         effects.add(EffectData(effect, start, end))
     }
@@ -24,9 +31,11 @@ class Effector {
     }
 
     fun exec(data: ShortArray, pos: Int): ShortArray {
+        // 現在の範囲で掛ける必要のあるエフェクトを検出する
         val targetEffects = effects.filter { it.start < pos + data.size && pos < it.end }
-        if (targetEffects.isEmpty()) return data
+        if (targetEffects.isEmpty()) return data // 掛ける必要がなければそのまま返す
         var res = data.map { it }.toShortArray()
+        // エフェクトを掛ける（同時に複数の場合もあり）
         targetEffects.forEach { e ->
             for(i in res.indices step 2) {
                 val t = 1 - (e.end - (pos + i)) / (e.end - e.start).toFloat()

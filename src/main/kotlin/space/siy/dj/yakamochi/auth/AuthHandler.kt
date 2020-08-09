@@ -88,6 +88,7 @@ object AuthHandler : AuthProvider, KoinComponent {
 
     val baseUrl = System.getenv("HTTP_BASE_URL")
 
+    // 認証システムを設定
     fun configure(app: Application) = app.run {
         install(Authentication) {
             jwt("jwt") {
@@ -118,6 +119,7 @@ object AuthHandler : AuthProvider, KoinComponent {
             })
         }
         routing {
+            // 発行されたログインリンククリック時
             get<Login> { p ->
                 if (call.request.userAgent()?.contains("Discordbot") == true) {
                     call.respond(HttpStatusCode.Forbidden)
@@ -159,6 +161,7 @@ object AuthHandler : AuthProvider, KoinComponent {
             }
 
             // TODO 直書きやめる
+            // Googleトークン更新処理
             Timer().scheduleAtFixedRate(0, 30 * 60 * 1000) {
                 logger().info("Start Refresh Token Operation")
                 val client = HttpClient(CIO) {

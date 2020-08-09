@@ -15,6 +15,11 @@ import space.siy.dj.yakamochi.music2.remote.YoutubeDLFFmpegRemoteAudioProvider
 /**
  * @author SIY1121
  */
+
+/**
+ * 専用MusicServiceが存在しない場合のフォールバック
+ * 情報の取得にすべてYoutubeDLの使用を試みる
+ */
 class Fallback : MusicService {
     override val id = "fallback"
     override val authType = AuthType.None
@@ -27,9 +32,10 @@ class Fallback : MusicService {
     override suspend fun search(q: String) = Outcome.Error(MusicService.ErrorReason.UnsupportedOperation, null)
 
     override suspend fun detail(url: String) = withContext(Dispatchers.IO) {
-        return@withContext runCatching<Outcome<VideoInfo, MusicService.ErrorReason>> {
+        runCatching<Outcome<VideoInfo, MusicService.ErrorReason>> {
             val res = YoutubeDL.getVideoInfo(url)
-            return@runCatching Outcome.Success(
+
+            Outcome.Success(
                     VideoInfoImpl(
                             url, res.title, res.duration.toFloat(), res.thumbnail
                     )
@@ -43,7 +49,7 @@ class Fallback : MusicService {
     }
 
     override suspend fun source(url: String) = withContext(Dispatchers.IO) {
-        return@withContext runCatching<Outcome<RemoteAudioProvider, MusicService.ErrorReason>> {
+        runCatching<Outcome<RemoteAudioProvider, MusicService.ErrorReason>> {
             val info = when (val r = detail(url)) {
                 is Outcome.Success -> r.result
                 is Outcome.Error -> return@runCatching Outcome.Error(r.reason, r.cause)

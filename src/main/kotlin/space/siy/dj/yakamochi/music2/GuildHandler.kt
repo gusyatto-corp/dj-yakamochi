@@ -20,23 +20,44 @@ import space.siy.dj.yakamochi.stackTraceString
 /**
  * @author SIY1121
  */
+
+/**
+ * 各ギルド毎の処理を行う
+ * DJコア部分とDiscordの橋渡しを行う
+ */
 @ExperimentalStdlibApi
 class GuildHandler(private val guildID: String, private val djID: String) : KoinComponent {
+    /**
+     * 認証をリクエストするためのプロバイダ
+     */
     private val authProvider: AuthProvider by inject()
+
+    /**
+     * 音楽再生用Player
+     */
     private val player = DJPlayer(guildID).apply {
         onErrorHandler = {
             if (activeChannel != null)
                 it.handle(activeChannel!!)
         }
     }
+
+    /**
+     * 再生中のPlaylistをリクエストしたメッセージのID
+     * リアクションによるコントロールを行うために使う
+     */
     private var playlistMessageID: String? = null
 
+    /**
+     * 最後に家持ちゃんにメンションしたメッセージが含まれるチャンネル
+     */
     private var activeChannel: MessageChannel? = null
 
     suspend fun onMessageReceived(event: MessageReceivedEvent) = runCatching {
         val rawMsg = event.message.contentRaw
 
         when {
+            // ボイスチャンネル参加処理
             rawMsg.matches(Regex("[\\s\\S]*?お[\\s\\S]*?い[\\s\\S]*?で[\\s\\S]*?")) -> {
                 val channel = event.member?.voiceState?.channel ?: return@runCatching
                 event.guild.audioManager.run {
@@ -48,45 +69,60 @@ class GuildHandler(private val guildID: String, private val djID: String) : Koin
                     openAudioConnection(channel)
                 }
             }
+            // スキップ
             rawMsg.contains("skip") -> {
                 player.skip()
             }
+            // ボイスチャンネル切断処理
             rawMsg.matches(Regex("[\\s\\S]*?([ばバ][\\s\\S]*?[いイ][\\s\\S]*?){2}[\\s\\S]*?")) -> {
                 event.guild.audioManager.closeAudioConnection()
             }
+            // 履歴からのランダム再生有効
             rawMsg.contains("おまかせ") -> player.setHistoryFallback(true)
+            // 履歴からのランダム再生無効
             rawMsg.contains("おまかせおわり") -> player.setHistoryFallback(false)
+            // 現在流れている曲をお気に入り登録する
             rawMsg.contains(Regex("(好き|すき|すこ)")) -> {
                 val videoInfo = player.videoInfo ?: return@runCatching
                 when (val result = MusicServiceManager.like(videoInfo.url, event.author.id)) {
+                    // 成功時はリアクションをつける
                     is Outcome.Success -> event.message.addReaction("👍").queue()
                     is Outcome.Error -> when (result.reason) {
-                        is MusicService.ErrorReason.UnsupportedOperation -> event.channel.sendMessage(MessageBuilder()
+                        // 非対応のサービスだった場合
+                        is MusicService.ErrorReason.UnsupportedOperation -> 
+                            event.channel.sendMessage(MessageBuilder()
                                 .append("<@${event.author.id}>")
                                 .append("このサービスはまだ連携できないから自分でお気に入り登録してちょうだい\n")
                                 .append(videoInfo.url)
                                 .build()
                         ).queue()
+                        // ログインが必要な場合
                         is MusicService.ErrorReason.Unauthorized -> {
                             event.channel.sendMessage(MessageBuilder()
                                     .append("<@${event.author.id}>")
                                     .append("あんたの代わりにお気に入りに登録するには${result.reason.type}のログインが必要よ！\nDMを見てちょうだい")
                                     .build()
                             ).queue()
+
+                            // DMを開く
                             val privateChannel = event.author.openPrivateChannel().complete()
+                            // ログイン要求
                             privateChannel.sendMessage(authProvider.requestAuth(event.author.id, result.reason.type) {
                                 runBlocking { MusicServiceManager.like(videoInfo.url, event.author.id) }
                                 privateChannel.sendMessage("ログイン完了よ！").queue()
                                 event.message.addReaction("👍").queue()
                             }).queue()
                         }
+                        // その他の失敗
                         else -> event.message.addReaction("❌").queue()
                     }
                 }
             }
+            // 再生リクエスト
             else -> {
                 val url = rawMsg.matchUrl() ?: return@runCatching
                 when (MusicServiceManager.resourceType(url)) {
+                    // urlが単体リソースだった場合はキューする
                     MusicService.ResourceType.Video -> {
                         val result = player.queue(url, event.author.id, guildID) {
                             event.message.clearReactions().complete()
@@ -98,6 +134,7 @@ class GuildHandler(private val guildID: String, private val djID: String) : Koin
                         }
 
                     }
+                    // urlがプレイリストリソースだった場合はプレイリストを有効にする
                     MusicService.ResourceType.Playlist -> {
                         val result = player.setPlaylist(url, event.author.id) {
                             event.message.clearReactions().complete()
@@ -123,6 +160,7 @@ class GuildHandler(private val guildID: String, private val djID: String) : Koin
         }
         activeChannel = event.channel
     }.onFailure {
+        // 想定外のエラー処理
         activeChannel?.sendMessage("""なんか機材が煙上げてるんだけど！！！！
             ```======家持ちゃんが操作した機材ログ(Unmanaged)======
             
@@ -133,7 +171,7 @@ class GuildHandler(private val guildID: String, private val djID: String) : Koin
 
     suspend fun onMessageReactionAdd(event: MessageReactionAddEvent) {
         if (event.user?.id == event.jda.selfUser.id || event.messageId != playlistMessageID) return
-
+        // プレイリスト再生中でコントロールに該当するリアクションがあった場合の処理
         when (event.reactionEmote.name) {
             "❌" -> {
                 player.clearPlaylist()
@@ -145,12 +183,17 @@ class GuildHandler(private val guildID: String, private val djID: String) : Koin
     }
 
     suspend fun onMessageReactionRemove(event: MessageReactionRemoveEvent) {
+        if (event.user?.id == event.jda.selfUser.id || event.messageId != playlistMessageID) return
+        // プレイリスト再生中でコントロールに該当するリアクションがキャンセルされた場合の処理
         when (event.reactionEmote.name) {
             "🔁" -> player.setPlaylistRepeat(false)
             "🔀" -> player.setPlaylistRandom(false)
         }
     }
 
+    /**
+     * プレイヤーに関するエラー処理
+     */
     private fun Outcome.Error<Player.ErrorReason>.handle(channel: MessageChannel) {
         fun String.attachLog() = this + """
 ```======家持ちゃんが操作した機材ログ======

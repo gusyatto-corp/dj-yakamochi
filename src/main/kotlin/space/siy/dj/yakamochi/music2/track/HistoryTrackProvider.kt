@@ -11,6 +11,10 @@ import space.siy.dj.yakamochi.music2.remote.RemoteAudioProvider
 /**
  * @author SIY1121
  */
+
+/**
+ * 過去のトラックからランダムに曲を供給する
+ */
 class HistoryTrackProvider<T : AudioProvider>(val guildID: String) : TrackProvider<T>, KoinComponent {
     val repository: TrackHistoryRepository by inject()
     override var audioProviderCreator: ((remoteAudioProvider: RemoteAudioProvider) -> T)? = null

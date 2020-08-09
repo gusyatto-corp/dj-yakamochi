@@ -1,39 +1,63 @@
 package space.siy.dj.yakamochi.music2.track
 
-import com.sapher.youtubedl.YoutubeDL
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.koin.core.KoinComponent
 import org.koin.core.inject
 import space.siy.dj.yakamochi.Outcome
-import space.siy.dj.yakamochi.music2.audio.AudioProvider
-import space.siy.dj.yakamochi.music2.remote.RemoteAudioProvider
-import space.siy.dj.yakamochi.music2.sampleCountToSec
 import space.siy.dj.yakamochi.database.ExposedTrackHistoryRepository
 import space.siy.dj.yakamochi.database.TrackHistory
 import space.siy.dj.yakamochi.database.TrackHistoryRepository
 import space.siy.dj.yakamochi.database.User
 import space.siy.dj.yakamochi.music2.VideoInfo
+import space.siy.dj.yakamochi.music2.audio.AudioProvider
+import space.siy.dj.yakamochi.music2.remote.RemoteAudioProvider
+import space.siy.dj.yakamochi.music2.sampleCountToSec
 import space.siy.dj.yakamochi.music_service.MusicService
 import space.siy.dj.yakamochi.music_service.MusicServiceManager
 
 /**
  * @author SIY1121
  */
-class Track<T : AudioProvider> private constructor(private val trackHistory: TrackHistory) : KoinComponent, space.siy.dj.yakamochi.music2.VideoInfo {
+
+/**
+ * トラックを表し、ドメイン知識・責務を持つ
+ */
+class Track<T : AudioProvider> private constructor(private val trackHistory: TrackHistory) : KoinComponent, VideoInfo {
+
+    /**
+     * Trackが発生させる可能性のあるエラーを表す
+     */
     sealed class ErrorReason {
         data class MusicServiceError(val reason: MusicService.ErrorReason) : ErrorReason()
         object Unhandled : ErrorReason()
     }
 
+    /**
+     * トラックを保持しておくためのレポジトリ
+     */
     private val repository: TrackHistoryRepository by inject()
 
+    /**
+     * このトラックの音声データを取得するためのRemoteAudioProvider
+     */
     private var remoteAudioProvider: RemoteAudioProvider? = null
+
+    /**
+     * このトラックの音声データを取得するためのAudioProvider
+     */
     var audioProvider: T? = null
 
+    /**
+     * AudioProviderが初期化されているかを返す
+     */
     val audioInitialized: Boolean
         get() = audioProvider != null
 
+    /**
+     * トラックのIDを返す
+     * リクエストごとに一意のID
+     */
     val trackID: Int
         get() = trackHistory.id
 

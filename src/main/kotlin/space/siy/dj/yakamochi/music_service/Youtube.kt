@@ -30,6 +30,10 @@ import space.siy.dj.yakamochi.music2.remote.YoutubeDLFFmpegRemoteAudioProvider
 /**
  * @author SIY1121
  */
+
+/**
+ * Youtubeを表すMusicService
+ */
 class Youtube : MusicService, KoinComponent {
     val authRepository: AuthRepository by inject()
     override val authType = AuthType.Google
@@ -44,6 +48,7 @@ class Youtube : MusicService, KoinComponent {
 
     private val API_KEY = System.getenv("GOOGLE_API_KEY")
 
+    //// YoutubeAPIから返却される型の定義
     data class YoutubePagerResponse<T>(val kind: String, val nextPageToken: String?, val prevPageToken: String, val pageInfo: PageInfo, val items: Array<T>) {
         data class PageInfo(val totalResults: Int, val resultsPerPage: Int)
     }
@@ -64,7 +69,11 @@ class Youtube : MusicService, KoinComponent {
     }
 
     data class VideoInfoImpl(override val url: String, override val title: String, override val duration: Float, override val thumbnail: String) : VideoInfo
+    ////
 
+    /**
+     * 認証ユーザーに依存しないデータの取得に用いるクライアント
+     */
     private val client = HttpClient(CIO) {
         install(JsonFeature) {
             serializer = GsonSerializer()
@@ -78,6 +87,9 @@ class Youtube : MusicService, KoinComponent {
         }
     }
 
+    /**
+     * 認証ユーザーに依存するデータの取得に用いるクライアント
+     */
     private val userClient = HttpClient(CIO) {
         install(JsonFeature) {
             serializer = GsonSerializer()
@@ -98,7 +110,8 @@ class Youtube : MusicService, KoinComponent {
             val res = client.get<YoutubePagerResponse<VideoResource>>("https://www.googleapis.com/youtube/v3/videos") {
                 parameter("part", "id,snippet,contentDetails")
                 parameter("id", videoID)
-            }.items.firstOrNull() ?: return@withContext Outcome.Error(MusicService.ErrorReason.Unavailable(MusicService.ErrorReason.Unavailable.Reason.NotFound), null)
+            }.items.firstOrNull() // 空配列が帰ってきたら動画が見つからなかったと判定
+                    ?: return@withContext Outcome.Error(MusicService.ErrorReason.Unavailable(MusicService.ErrorReason.Unavailable.Reason.NotFound), null)
 
             Outcome.Success(
                     VideoInfoImpl(
@@ -137,12 +150,12 @@ class Youtube : MusicService, KoinComponent {
     }
 
     override suspend fun playlist(url: String, accessToken: String?): Outcome<List<VideoInfo>, MusicService.ErrorReason> = withContext(Dispatchers.IO) {
-        return@withContext runCatching<Outcome<List<VideoInfo>, MusicService.ErrorReason>> {
+        runCatching<Outcome<List<VideoInfo>, MusicService.ErrorReason>> {
             val playlistID = url.matchYoutubePlaylistID()
                     ?: return@runCatching Outcome.Error(MusicService.ErrorReason.UnsupportedResource, null)
 
             val res = ArrayList<VideoInfo>()
-            var nextPageToken: String? = null
+            var nextPageToken: String? = null // 次のページがある場合に発行されるトークン
             while (true) {
                 val r = client.get<YoutubePagerResponse<PlaylistItemResource>>("https://www.googleapis.com/youtube/v3/playlistItems") {
                     parameter("part", "snippet")
@@ -159,7 +172,7 @@ class Youtube : MusicService, KoinComponent {
                             it.snippet.thumbnails.entries.lastOrNull()?.value?.url ?: ""
                     )
                 })
-                if (r.nextPageToken == null) break
+                if (r.nextPageToken == null) break // 次ページがない場合は取得終了
                 nextPageToken = r.nextPageToken
             }
 
@@ -185,19 +198,31 @@ class Youtube : MusicService, KoinComponent {
         Outcome.Error(MusicService.ErrorReason.Unhandled, it)
     }.getOrThrow()
 
+    /**
+     * 動画の長さを表す文字列を秒数に変換
+     */
     private fun String.toSec() = Regex("PT((\\d*?)M)?((\\d*?)S)?").find(this)?.run {
         ((groupValues[2].toIntOrNull() ?: 0) * 60) + (groupValues[4].toIntOrNull() ?: 0)
     } ?: 0
 
+    /**
+     * HTTP系エラーを独自エラーにマッピング
+     */
     private fun ClientRequestException.toOutcomeError() = when (response.status) {
         HttpStatusCode.NotFound -> Outcome.Error(MusicService.ErrorReason.Unavailable(MusicService.ErrorReason.Unavailable.Reason.NotFound), this)
         HttpStatusCode.Forbidden -> Outcome.Error(MusicService.ErrorReason.Unavailable(MusicService.ErrorReason.Unavailable.Reason.Forbidden), this)
         else -> Outcome.Error(MusicService.ErrorReason.Unavailable(MusicService.ErrorReason.Unavailable.Reason.Unknown), this)
     }
 
+    /**
+     * urlからYoutubeのVideoIDを抽出する
+     */
     private fun String.youtubeVideoID() =
             Regex("[?&]v=(.*?)(?=(\$|&))").find(this)?.groupValues?.get(1)
                     ?: Regex("youtu\\.be\\/(.*?)\$").find(this)?.groupValues?.get(1)
 
+    /**
+     * urlからYoutubeのPlaylistIDを抽出する
+     */
     private fun String.matchYoutubePlaylistID() = Regex("playlist\\?list=(.*?)(?=(\$|&))").find(this)?.groupValues?.get(1)
 }

@@ -18,14 +18,24 @@ import java.io.PrintWriter
 /**
  * @author SIY1121
  */
+
+/**
+ * 音楽を再生するプレイヤー
+ * プレイヤーの操作と音声データを提供する
+ */
 @ExperimentalStdlibApi
 abstract class Player<T : AudioProvider>(val guildID: String) : AudioSendHandler {
+
+    /**
+     * プレイヤーが発生させる可能性のあるエラー処理
+     */
     sealed class ErrorReason {
         data class MusicServiceError(val reason: MusicService.ErrorReason) : ErrorReason()
         object Unhandled : ErrorReason()
     }
 
     var initialized = false
+
     protected var trackProviders = FallbackTrackProvider<T>()
     private var trackQueue = TrackQueue<T>(guildID)
     private var playlistTrackProvider = PlaylistTrackProvider<T>(guildID)
@@ -33,6 +43,9 @@ abstract class Player<T : AudioProvider>(val guildID: String) : AudioSendHandler
 
     protected var nowPlayingTrack: Track<T>? = null
 
+    /**
+     * トラックの再生が完了したコールバックを保持
+     */
     private val doneCallbackMap = HashMap<Int, () -> Unit>()
 
     var onErrorHandler: ((e: Outcome.Error<ErrorReason>) -> Unit)? = null
@@ -58,11 +71,17 @@ abstract class Player<T : AudioProvider>(val guildID: String) : AudioSendHandler
     abstract suspend fun pause()
     abstract suspend fun skip()
 
+    /**
+     * トラック完了時、子孫クラスによって呼び出される
+     */
     protected suspend fun doneTrack(track: Track<T>) {
         track.done()
         doneCallbackMap.remove(track.trackID)?.invoke()
     }
 
+    /**
+     * 曲をキューする
+     */
     suspend fun queue(url: String, author: String, guild: String, doneCallback: (() -> Unit)? = null) = runCatching<Outcome<Unit, ErrorReason>> {
         val track = when (val r = trackQueue.queue(url, author, guild)) {
             is Outcome.Success -> r.result
@@ -79,7 +98,9 @@ abstract class Player<T : AudioProvider>(val guildID: String) : AudioSendHandler
     }.recover { Outcome.Error(ErrorReason.Unhandled, it) }
             .getOrThrow()
 
-
+    /**
+     * プレイリストをセット
+     */
     suspend fun setPlaylist(url: String, author: String, doneCallback: (() -> Unit)? = null) = runCatching<Outcome<Unit, ErrorReason>> {
         when (val r = playlistTrackProvider.setPlaylist(url, author, doneCallback)) {
             is Outcome.Success -> {
@@ -106,6 +127,9 @@ abstract class Player<T : AudioProvider>(val guildID: String) : AudioSendHandler
         playlistTrackProvider.clearPlaylist()
     }
 
+    /**
+     * 履歴からのランダム再生モードを設定する
+     */
     suspend fun setHistoryFallback(enable: Boolean) {
         if (enable && historyTrackProvider == null) {
             historyTrackProvider = HistoryTrackProvider(guildID)
@@ -116,6 +140,9 @@ abstract class Player<T : AudioProvider>(val guildID: String) : AudioSendHandler
         }
     }
 
+    /**
+     * エラーハンドリング
+     */
     protected fun onError(e: Outcome.Error<ErrorReason>) {
         onErrorHandler?.invoke(e)
         logger().let { logger ->
@@ -124,7 +151,10 @@ abstract class Player<T : AudioProvider>(val guildID: String) : AudioSendHandler
         }
     }
 
-    suspend fun requestTrack(): Track<T>? = when (val r = trackProviders.requestTrack()) {
+    /**
+     * トラックをリクエストする際に子孫クラスによって呼び出される
+     */
+    protected suspend fun requestTrack(): Track<T>? = when (val r = trackProviders.requestTrack()) {
         is Outcome.Success -> r.result
         is Outcome.Error -> {
             if (r.reason is TrackProvider.ErrorReason.NoTrack) null

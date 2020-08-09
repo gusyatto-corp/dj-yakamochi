@@ -28,6 +28,7 @@ class YoutubeDLFFmpegRemoteAudioProvider(private val videoInfo: VideoInfo, priva
         val targetFormat = info.filter { it.acodec == "opus" }.maxBy { it.abr } ?: info.last()
         this@YoutubeDLFFmpegRemoteAudioProvider.targetFormat = targetFormat
 
+        // DASH形式の場合はYoutubeDLにリソースの取得を任せる
         if (targetFormat.format.contains("DASH")) {
             ytdlProcess = ProcessBuilder("youtube-dl", videoInfo.url, "-f ${targetFormat.formatId}", "-q", "-o-").start().apply {
                 grabber = FFmpegFrameGrabber(inputStream).apply {

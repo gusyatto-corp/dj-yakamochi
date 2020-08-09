@@ -15,6 +15,10 @@ import space.siy.dj.yakamochi.database.UserRepository
 /**
  * @author SIY1121
  */
+
+/**
+ * Discord内すべてのイベントを各GuildHandlerに振り分ける
+ */
 @ExperimentalStdlibApi
 class EventHandler : ListenerAdapter(), KoinComponent {
 

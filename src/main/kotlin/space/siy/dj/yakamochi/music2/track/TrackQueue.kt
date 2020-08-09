@@ -14,9 +14,18 @@ import space.siy.dj.yakamochi.music_service.MusicService
 /**
  * @author SIY1121
  */
+
+/**
+ * TrackProviderのQueue実装
+ * 一般にユーザーのリクエスをキューに格納しておいて
+ * リクエストに応じてpopするのに使用する
+ */
 @ExperimentalStdlibApi
 class TrackQueue<T : AudioProvider>(val guildID: String) : TrackProvider<T>, KoinComponent {
 
+    /**
+     * TrackQueueが発生させる可能性のあるエラーを表す
+     */
     sealed class ErrorReason {
         data class MusicServiceError(val reason: MusicService.ErrorReason) : ErrorReason()
         object Unhandled : ErrorReason()
@@ -25,6 +34,11 @@ class TrackQueue<T : AudioProvider>(val guildID: String) : TrackProvider<T>, Koi
     val queue = ArrayDeque<Track<T>>()
     val trackHistoryRepository by inject<TrackHistoryRepository>()
 
+    /**
+     * データベースからまだ再生されていないトラックをキューにpushする
+     * 強制終了等で過去にリクエストされたがキューから消失しているときに有効
+     * 初期化時に呼び出す
+     */
     suspend fun loadFromHistory() {
         trackHistoryRepository.listAll(guildID, false).map { history ->
             val track = Track.fromHistory<T>(history)
@@ -33,6 +47,9 @@ class TrackQueue<T : AudioProvider>(val guildID: String) : TrackProvider<T>, Koi
         }
     }
 
+    /**
+     * 与えられた曲をpushする
+     */
     suspend fun queue(url: String, author: String, guild: String) = withContext(Dispatchers.IO) {
         return@withContext runCatching<Outcome<Track<T>, ErrorReason>> {
             if (audioProviderCreator == null) throw Exception("AudioProviderCreator is not set")
@@ -57,18 +74,21 @@ class TrackQueue<T : AudioProvider>(val guildID: String) : TrackProvider<T>, Koi
     override var audioProviderCreator: ((remoteAudioProvider: RemoteAudioProvider) -> T)? = null
 
     override suspend fun requestTrack() = runCatching {
-        if (queue.size == 0) return@runCatching Outcome.Error(TrackProvider.ErrorReason.NoTrack, null)
+        // 曲を提供できない場合はNoTrackを返却
+        if (queue.isEmpty()) return@runCatching Outcome.Error(TrackProvider.ErrorReason.NoTrack, null)
+
         val res = queue.removeFirst().apply {
+
+            // AudioProviderが初期化されてなければする
             if (!audioInitialized) {
                 val r = prepareAudio { audioProviderCreator!!(it) }
-                if (r is Outcome.Error){
+                if (r is Outcome.Error) {
                     remove() // 再生できなかったトラックはなかったことにする
                     when (r.reason) {
                         is Track.ErrorReason.MusicServiceError -> return@runCatching Outcome.Error(TrackProvider.ErrorReason.MusicServiceError(r.reason.reason), r.cause)
                         else -> return@runCatching Outcome.Error(TrackProvider.ErrorReason.Unhandled, r.cause)
                     }
                 }
-
             }
         }
         return@runCatching Outcome.Success(res)

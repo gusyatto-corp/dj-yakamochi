@@ -10,7 +10,6 @@ import org.koin.dsl.module
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import space.siy.dj.yakamochi.auth.AuthHandler
-import space.siy.dj.yakamochi.auth.DMHandler
 import space.siy.dj.yakamochi.database.*
 import space.siy.dj.yakamochi.http.startHttpServer
 

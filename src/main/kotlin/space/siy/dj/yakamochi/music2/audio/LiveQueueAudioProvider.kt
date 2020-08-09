@@ -13,6 +13,12 @@ import java.util.concurrent.TimeUnit
 /**
  * @author SIY1121
  */
+
+/**
+ * ライブ配信の音源のストリーミングに特化したProvider
+ * リアルタイム性を優先するため、キューがいっぱいになると古いものを破棄する
+ * そのためまれに音が飛ぶ可能性がある
+ */
 class LiveQueueAudioProvider(remote: RemoteAudioProvider) : QueueAudioProvider(remote) {
 
     override fun start() = scope.launch {
@@ -27,6 +33,7 @@ class LiveQueueAudioProvider(remote: RemoteAudioProvider) : QueueAudioProvider(r
             val data = remote.read() ?: break
             var dispose = 0
             data.toArray().forEach {
+                // キューがいっぱいの場合は古いものを破棄
                 if(!queue.offer(it, 5000, TimeUnit.MILLISECONDS)) {
                     queue.poll()
                     queue.offer(it)

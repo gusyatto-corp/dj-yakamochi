@@ -56,6 +56,7 @@ class AnalyzedAudioProvider(remote: RemoteAudioProvider) : AudioProvider(remote)
                 ?: 0
         endFadePos = events.find { it is Event.EndPos }?.positionInSec?.secToSampleCount() ?: 0
         effector.scheduleEffect(Gain(1 / res.maxVolume - 0.05f), startFadePos, endFadePos)
+        logInfo("tempo: ${res.tempo}")
         logInfo("adjust volume ${1 / res.maxVolume - 0.05f}")
         effector.scheduleEffect(FadeIn, startFadePos, startPos)
         effector.scheduleEffect(FadeOut, endPos, endFadePos)

@@ -14,6 +14,11 @@ import java.util.concurrent.ArrayBlockingQueue
 /**
  * @author SIY1121
  */
+
+/**
+ * リモートの音源をキューしながら供給する
+ * いわゆるストリーミング再生状態を実現する
+ */
 open class QueueAudioProvider(remote: RemoteAudioProvider) : AudioProvider(remote) {
 
     override var duration = 0
