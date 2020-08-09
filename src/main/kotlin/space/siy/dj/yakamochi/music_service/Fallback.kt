@@ -1,8 +1,10 @@
 package space.siy.dj.yakamochi.music_service
 
 import com.sapher.youtubedl.YoutubeDL
+import com.sapher.youtubedl.YoutubeDLException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import space.siy.dj.yakamochi.Outcome
 import space.siy.dj.yakamochi.auth.AuthType
 import space.siy.dj.yakamochi.music2.VideoInfo
 import space.siy.dj.yakamochi.music2.VideoSourceInfo
@@ -22,40 +24,47 @@ class Fallback : MusicService {
     override fun canHandle(url: String) = true
     override fun resourceType(url: String) = MusicService.ResourceType.Video
 
-    override suspend fun search(q: String): List<VideoInfo> {
-        TODO("Not yet implemented")
-    }
+    override suspend fun search(q: String) = Outcome.Error(MusicService.ErrorReason.UnsupportedOperation, null)
 
     override suspend fun detail(url: String) = withContext(Dispatchers.IO) {
-        try {
+        return@withContext runCatching<Outcome<VideoInfo, MusicService.ErrorReason>> {
             val res = YoutubeDL.getVideoInfo(url)
-            return@withContext VideoInfoImpl(
-                    url, res.title, res.duration.toFloat(), res.thumbnail
+            return@runCatching Outcome.Success(
+                    VideoInfoImpl(
+                            url, res.title, res.duration.toFloat(), res.thumbnail
+                    )
             )
-        } catch (e: Exception) {
-            e.printStackTrace()
-            return@withContext null
-        }
+        }.recover { e ->
+            when (e) {
+                is YoutubeDLException -> Outcome.Error(MusicService.ErrorReason.Unavailable(MusicService.ErrorReason.Unavailable.Reason.Unknown), e)
+                else -> Outcome.Error(MusicService.ErrorReason.Unhandled, e)
+            }
+        }.getOrThrow()
     }
 
-    override suspend fun source(url: String): RemoteAudioProvider? = withContext(Dispatchers.IO) {
-        val info = detail(url) ?: throw Exception("トラックの情報を取得できませんでした")
-        return@withContext try {
+    override suspend fun source(url: String) = withContext(Dispatchers.IO) {
+        return@withContext runCatching<Outcome<RemoteAudioProvider, MusicService.ErrorReason>> {
+            val info = when (val r = detail(url)) {
+                is Outcome.Success -> r.result
+                is Outcome.Error -> return@runCatching Outcome.Error(r.reason, r.cause)
+            }
+
             val formats = YoutubeDL.getFormats(url).map {
                 VideoSourceInfoImpl(it.asr, it.tbr, it.abr, it.format, it.formatId, it.formatNote, it.ext, it.vcodec, it.acodec, it.width, it.height, it.filesize, it.fps, it.url)
             }
-            YoutubeDLFFmpegRemoteAudioProvider(info, formats)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
+            Outcome.Success(
+
+                    YoutubeDLFFmpegRemoteAudioProvider(info, formats)
+            )
+        }.recover { e ->
+            when (e) {
+                is YoutubeDLException -> Outcome.Error(MusicService.ErrorReason.Unavailable(MusicService.ErrorReason.Unavailable.Reason.Unknown), e)
+                else -> Outcome.Error(MusicService.ErrorReason.Unhandled, e)
+            }
+        }.getOrThrow()
     }
 
-    override suspend fun playlist(id: String, accessToken: String?): List<VideoInfo> {
-        TODO("Not yet implemented")
-    }
+    override suspend fun playlist(id: String, accessToken: String?) = Outcome.Error(MusicService.ErrorReason.UnsupportedOperation, null)
 
-    override suspend fun like(id: String, accessToken: String) {
-        TODO("Not yet implemented")
-    }
+    override suspend fun like(id: String, accessToken: String) = Outcome.Error(MusicService.ErrorReason.UnsupportedOperation, null)
 }

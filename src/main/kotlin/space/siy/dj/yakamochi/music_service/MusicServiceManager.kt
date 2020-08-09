@@ -1,5 +1,6 @@
 package space.siy.dj.yakamochi.music_service
 
+import space.siy.dj.yakamochi.Outcome
 import space.siy.dj.yakamochi.auth.AuthProvider
 import space.siy.dj.yakamochi.auth.AuthType
 import space.siy.dj.yakamochi.music2.VideoInfo
@@ -9,7 +10,7 @@ import space.siy.dj.yakamochi.music2.VideoSourceInfo
  * @author SIY1121
  */
 object MusicServiceManager : MusicService {
-    class NotAuthorizedError(val authType: AuthType): Exception()
+    class NotAuthorizedError(val authType: AuthType) : Exception()
 
     override val authType = AuthType.None
     override val id: String = "manager"
@@ -22,16 +23,16 @@ object MusicServiceManager : MusicService {
     override fun resourceType(url: String) = getSupportedService(url)?.resourceType(url)
             ?: MusicService.ResourceType.Unknown
 
-    override suspend fun search(q: String): List<VideoInfo> {
-        TODO("Not yet implemented")
-    }
+    override suspend fun search(q: String) = Outcome.Error(MusicService.ErrorReason.UnsupportedOperation, null)
 
     override suspend fun detail(url: String) = getSupportedService(url)?.detail(url)
+            ?: Outcome.Error(MusicService.ErrorReason.UnsupportedResource, null)
 
     override suspend fun source(url: String) = getSupportedService(url)?.source(url)
+            ?: Outcome.Error(MusicService.ErrorReason.UnsupportedResource, null)
 
     override suspend fun playlist(url: String, accessToken: String?) = getSupportedService(url)?.playlist(url)
-            ?: emptyList()
+            ?: Outcome.Error(MusicService.ErrorReason.UnsupportedResource, null)
 
-    override suspend fun like(url: String, userID: String) = getSupportedService(url)?.like(url, userID) ?: Unit
+    override suspend fun like(url: String, userID: String) = getSupportedService(url)?.like(url, userID) ?: Outcome.Error(MusicService.ErrorReason.UnsupportedResource, null)
 }
