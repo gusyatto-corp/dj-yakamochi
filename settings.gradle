@@ -8,3 +8,5 @@
  */
 
 rootProject.name = 'dj_yakamochi'
+include ':music-analyzer-kt'
+project(':music-analyzer-kt').projectDir = new File('../music-analyzer-kt')
